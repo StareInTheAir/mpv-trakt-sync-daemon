@@ -1,0 +1,8 @@
+appdirs==1.4.0
+babelfish==0.5.5
+guessit==2.1.1
+packaging==16.8
+pyparsing==2.1.10
+python-dateutil==2.6.0
+rebulk==0.8.2
+six==1.10.0
