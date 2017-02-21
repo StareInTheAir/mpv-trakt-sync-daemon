@@ -20,7 +20,7 @@ Or on windows with:
 1. `cd mpv-trakt-sync-daemon`
 1. `virtualenv venv`
 1. `venv/Scripts/activate`
-1. `pip install requirements.txt`
+1. `pip install -r requirements.txt`
 1. `python mpv-trakt-daemon.py`
 
 ## useful resources
