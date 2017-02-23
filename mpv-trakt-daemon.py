@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import os
-from queue import Queue
-from threading import Lock
 from time import sleep
-from guessit import guessit
-import json
+
+import mpv
 
 MPV_PIPE_PATH = r'\\.\pipe\mpv'
 SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5
@@ -27,10 +25,11 @@ def main():
                 break
 
 
-def start_mpv_monitoring(pipe_path):
-    command_queue = Queue()
-    lock = Lock()
+if __name__ == '__main__':
+    main()
 
+
+def start_mpv_monitoring(pipe_path):
     mpv_pipe = None
     while mpv_pipe is None:
         try:
@@ -44,69 +43,42 @@ def start_mpv_monitoring(pipe_path):
             sleep(0.01)
 
     print("opened mpv pipe")
-
-    issue_scrobble_commands(mpv_pipe, lock, command_queue)
-
-    while True:
-        line = mpv_pipe.readline()
-        if len(line) == 0:
-            print('mpv was closed')
-            mpv_pipe.close()
-            break
-        mpv_json = json.loads(line)
-        print(mpv_json)
-        if 'event' in mpv_json:
-            handle_event(mpv_pipe, lock, command_queue, mpv_json)
-        elif 'data' in mpv_json:
-            handle_command_response(mpv_pipe, lock, command_queue, mpv_json)
-        else:
-            print('Unknown mpv output: ' + mpv_json)
+    TraktMpvMonitor(mpv_pipe).run()
 
 
-last_pause_state = last_playback_position = last_path = None
+class TraktMpvMonitor(mpv.MpvMonitor):
+    def __init__(self, mpv_pipe):
+        super().__init__(mpv_pipe)
+        self.last_pause_state = None
+        self.last_playback_position = None
+        self.last_path = None
+        self.issue_scrobble_commands()
 
+    def on_command_response(self, command, response):
+        last_command_elements = command['command']
+        if last_command_elements[0] == 'get_property':
+            if last_command_elements[1] == 'pause':
+                self.last_pause_state = response['data']
+            elif last_command_elements[1] == 'percent-pos':
+                self.last_playback_position = response['data']
+            elif last_command_elements[1] == 'path':
+                self.last_path = response['data']
+            if self.last_pause_state is not None \
+                    and self.last_playback_position is not None \
+                    and self.last_path is not None:
+                print('got everything for a scrobble', self.last_pause_state, self.last_playback_position,
+                      self.last_path)
+                self.last_pause_state = None
+                self.last_playback_position = None
+                self.last_path = None
 
-def handle_command_response(mpv_pipe, lock, command_queue, response):
-    global last_pause_state, last_playback_position, last_path
+    def on_event(self, event):
+        print(event)
+        event_name = event['event']
+        if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek' or event_name == 'start-file':
+            self.issue_scrobble_commands()
 
-    last_command_elements = command_queue.get()['command']
-    if last_command_elements[0] == 'get_property':
-        if last_command_elements[1] == 'pause':
-            last_pause_state = response['data']
-        elif last_command_elements[1] == 'percent-pos':
-            last_playback_position = response['data']
-        elif last_command_elements[1] == 'path':
-            last_path = response['data']
-        if last_pause_state is not None and last_playback_position is not None and last_path is not None:
-            print('got everything for a scrobble', last_pause_state, last_playback_position, last_path)
-            last_pause_state = None
-            last_playback_position = None
-            last_path = None
-
-
-def handle_event(mpv_pipe, lock, command_queue, event):
-    event_name = event['event']
-    if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek' or event_name == 'start-file':
-        issue_scrobble_commands(mpv_pipe, lock, command_queue)
-
-
-def issue_scrobble_commands(mpv_pipe, lock, command_queue):
-    issue_command_get_property(mpv_pipe, lock, command_queue, 'path')
-    issue_command_get_property(mpv_pipe, lock, command_queue, 'percent-pos')
-    issue_command_get_property(mpv_pipe, lock, command_queue, 'pause')
-
-
-def issue_command(mpv_pipe, lock, command_queue, elements):
-    command = {'command': elements}
-    with lock:
-        mpv_pipe.write(bytes(json.dumps(command), 'utf-8'))
-        mpv_pipe.write(str.encode('\n'))
-        command_queue.put(command)
-
-
-def issue_command_get_property(mpv_pipe, lock, command_queue, property_name):
-    issue_command(mpv_pipe, lock, command_queue, ['get_property', property_name])
-
-
-if __name__ == '__main__':
-    main()
+    def issue_scrobble_commands(self):
+        self.issue_command_get_property('path')
+        self.issue_command_get_property('percent-pos')
+        self.issue_command_get_property('pause')
