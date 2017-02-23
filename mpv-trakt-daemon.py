@@ -8,27 +8,6 @@ MPV_PIPE_PATH = r'\\.\pipe\mpv'
 SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5
 
 
-def main():
-    while True:
-        if os.path.isfile(MPV_PIPE_PATH):
-            start_mpv_monitoring(MPV_PIPE_PATH)
-            # If start_mpv_monitoring() returns, mpv was closed.
-            # If we try to instantly check for MPV_PIPE_PATH and open it again, mpv crashes.
-            # So we need to give mpv some time to close gracefully.
-            sleep(1)
-        else:
-            # sleep before next attempt
-            try:
-                sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
-            except KeyboardInterrupt:
-                print('terminating')
-                break
-
-
-if __name__ == '__main__':
-    main()
-
-
 def start_mpv_monitoring(pipe_path):
     mpv_pipe = None
     while mpv_pipe is None:
@@ -82,3 +61,24 @@ class TraktMpvMonitor(mpv.MpvMonitor):
         self.issue_command_get_property('path')
         self.issue_command_get_property('percent-pos')
         self.issue_command_get_property('pause')
+
+
+def main():
+    while True:
+        if os.path.isfile(MPV_PIPE_PATH):
+            start_mpv_monitoring(MPV_PIPE_PATH)
+            # If start_mpv_monitoring() returns, mpv was closed.
+            # If we try to instantly check for MPV_PIPE_PATH and open it again, mpv crashes.
+            # So we need to give mpv some time to close gracefully.
+            sleep(1)
+        else:
+            # sleep before next attempt
+            try:
+                sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
+            except KeyboardInterrupt:
+                print('terminating')
+                break
+
+
+if __name__ == '__main__':
+    main()
