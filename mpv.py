@@ -1,13 +1,13 @@
 import json
-import queue
 import threading
 
 
 class MpvMonitor:
     def __init__(self, mpv_pipe):
         self.lock = threading.Lock()
-        self.command_queue = queue.Queue()
         self.mpv_pipe = mpv_pipe
+        self.command_counter = 1
+        self.sent_commands = {}
 
     def run(self):
         while True:
@@ -22,8 +22,10 @@ class MpvMonitor:
                 threading.Thread(target=self.on_event,
                                  kwargs={'event': mpv_json}).start()
             elif 'data' in mpv_json:
+                request_id = mpv_json['request_id']
                 threading.Thread(target=self.on_command_response,
-                                 kwargs={'command': self.command_queue.get(), 'response': mpv_json}).start()
+                                 kwargs={'command': self.sent_commands[request_id], 'response': mpv_json}).start()
+                del self.sent_commands[request_id]
             else:
                 print('Unknown mpv output: ' + line)
 
@@ -34,12 +36,16 @@ class MpvMonitor:
         print(response)
 
     def issue_command(self, elements):
-        command = {'command': elements}
-        print(command)
-        with self.lock:
-            self.mpv_pipe.write(str.encode(json.dumps(command)))
-            self.mpv_pipe.write(str.encode('\n'))
-            self.command_queue.put(command)
+        if self.mpv_pipe.closed:
+            print('mpv_pipe was closed. Can\'t send command: ' + str(elements))
+        else:
+            command = {'command': elements, 'request_id': self.command_counter}
+            print(command)
+            with self.lock:
+                self.mpv_pipe.write(str.encode(json.dumps(command)))
+                self.mpv_pipe.write(str.encode('\n'))
+                self.sent_commands[self.command_counter] = command
+                self.command_counter += 1
 
     def issue_command_get_property(self, property_name):
         self.issue_command(['get_property', property_name])
