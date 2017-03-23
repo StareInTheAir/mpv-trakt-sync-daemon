@@ -58,9 +58,9 @@ class TraktMpvMonitor(mpv.MpvMonitor):
             self.issue_scrobble_commands()
 
     def issue_scrobble_commands(self):
-        self.issue_command_get_property('path')
-        self.issue_command_get_property('percent-pos')
-        self.issue_command_get_property('pause')
+        self.issue_get_property_command('path')
+        self.issue_get_property_command('percent-pos')
+        self.issue_get_property_command('pause')
 
 
 def main():

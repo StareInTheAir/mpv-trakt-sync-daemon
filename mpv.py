@@ -33,7 +33,7 @@ class MpvMonitor:
         print(event)
 
     def on_command_response(self, command, response):
-        print(response)
+        print(command, response)
 
     def issue_command(self, elements):
         if self.mpv_pipe.closed:
@@ -47,5 +47,5 @@ class MpvMonitor:
                 self.sent_commands[self.command_counter] = command
                 self.command_counter += 1
 
-    def issue_command_get_property(self, property_name):
+    def issue_get_property_command(self, property_name):
         self.issue_command(['get_property', property_name])
