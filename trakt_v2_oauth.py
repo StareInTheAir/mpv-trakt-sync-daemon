@@ -66,8 +66,6 @@ def prompt_device_authentication():
             })
             if token_request.status_code == 200:
                 token_json = token_request.json()
-                # add created_at date to token_json, because it got removed from the trakt api
-                token_json['created_at'] = int(datetime.datetime.utcnow().timestamp())
                 json.dump(token_json, open(local_storage_json_file, 'w'))
                 print('\nSuccessfully established access to trakt account')
                 got_access_token = True
@@ -81,3 +79,7 @@ def prompt_device_authentication():
     else:
         sys.exit('POST request for generating device codes failed with HTTP code %d.\n%s' %
                  (code_request.status_code, code_request.text))
+
+
+if __name__ == '__main__':
+    get_access_token()
