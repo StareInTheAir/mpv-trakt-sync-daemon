@@ -7,7 +7,7 @@ This project is currently in development. It's not in working condition.
 ## mpv setup
 You need to set the `--input-ipc-server` (see [docs](https://mpv.io/manual/master/#options-input-ipc-server)) in every mpv instance you want to be tracked. This is done most easily inside the [`mpv.conf`](https://mpv.io/manual/master/#files) file by adding the line
 
-    input-ipc-server=/tmp/mpv-pipe
+    input-ipc-server=/tmp/mpv-socket
 
 Or on windows with:
 
