@@ -1,79 +1,65 @@
 #!/usr/bin/env python3
-import os
 from time import sleep
 
 import mpv
 
-MPV_PIPE_PATH = r'\\.\pipe\mpv'
+MPV_WINDOWS_NAMED_PIPE_PATH = r'\\.\pipe\mpv'
+MPV_POSIX_SOCKET_PATH = '/tmp/mpv-socket'
 SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5
 
-
-def start_mpv_monitoring(pipe_path):
-    mpv_pipe = None
-    while mpv_pipe is None:
-        try:
-            mpv_pipe = open(pipe_path, 'r+b')
-            # Why r+b? We want rw access, no truncate and start from beginning of file.
-            # (see http://stackoverflow.com/a/30566011/2634932)
-        except OSError:
-            # Sometimes Windows can't open MPV_PIPE_PATH directly. I suspect a interaction between os.path.isfile()
-            # and directly following open(). Sleeping for a short time and trying again seems to help.
-            print('OSError. Trying again')
-            sleep(0.01)
-
-    print("opened mpv pipe")
-    TraktMpvMonitor(mpv_pipe).run()
+last_pause_state = None
+last_playback_position = None
+last_path = None
 
 
-class TraktMpvMonitor(mpv.MpvMonitor):
-    def __init__(self, mpv_pipe):
-        super().__init__(mpv_pipe)
-        self.last_pause_state = None
-        self.last_playback_position = None
-        self.last_path = None
-        self.issue_scrobble_commands()
+def on_command_response(monitor, command, response):
+    global last_pause_state, last_playback_position, last_path
+    last_command_elements = command['command']
+    if last_command_elements[0] == 'get_property':
+        if last_command_elements[1] == 'pause':
+            last_pause_state = response['data']
+        elif last_command_elements[1] == 'percent-pos':
+            last_playback_position = response['data']
+        elif last_command_elements[1] == 'path':
+            last_path = response['data']
+        if last_pause_state is not None \
+                and last_playback_position is not None \
+                and last_path is not None:
+            print('got everything for a scrobble', last_pause_state, last_playback_position,
+                  last_path)
+            last_pause_state = None
+            last_playback_position = None
+            last_path = None
 
-    def on_command_response(self, command, response):
-        last_command_elements = command['command']
-        if last_command_elements[0] == 'get_property':
-            if last_command_elements[1] == 'pause':
-                self.last_pause_state = response['data']
-            elif last_command_elements[1] == 'percent-pos':
-                self.last_playback_position = response['data']
-            elif last_command_elements[1] == 'path':
-                self.last_path = response['data']
-            if self.last_pause_state is not None \
-                    and self.last_playback_position is not None \
-                    and self.last_path is not None:
-                print('got everything for a scrobble', self.last_pause_state, self.last_playback_position,
-                      self.last_path)
-                self.last_pause_state = None
-                self.last_playback_position = None
-                self.last_path = None
 
-    def on_event(self, event):
-        print(event)
-        event_name = event['event']
-        if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek' or event_name == 'start-file':
-            self.issue_scrobble_commands()
+def on_event(monitor, event):
+    print(event)
+    event_name = event['event']
+    if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek' or event_name == 'start-file':
+        issue_scrobble_commands(monitor)
 
-    def issue_scrobble_commands(self):
-        self.issue_get_property_command('path')
-        self.issue_get_property_command('percent-pos')
-        self.issue_get_property_command('pause')
+
+def issue_scrobble_commands(monitor):
+    monitor.send_get_property_command('path')
+    monitor.send_get_property_command('percent-pos')
+    monitor.send_get_property_command('pause')
 
 
 def main():
+    monitor = mpv.MpvMonitor.create(MPV_POSIX_SOCKET_PATH, MPV_WINDOWS_NAMED_PIPE_PATH, issue_scrobble_commands,
+                                    on_event, on_command_response)
     while True:
-        if os.path.isfile(MPV_PIPE_PATH):
-            start_mpv_monitoring(MPV_PIPE_PATH)
-            # If start_mpv_monitoring() returns, mpv was closed.
-            # If we try to instantly check for MPV_PIPE_PATH and open it again, mpv crashes.
+        if monitor.can_open():
+            monitor.run()
+            print('mpv closed')
+            # If run() returns, mpv was closed.
+            # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
             # So we need to give mpv some time to close gracefully.
             sleep(1)
         else:
             # sleep before next attempt
             try:
+                print('mpv not open sleeping')
                 sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
             except KeyboardInterrupt:
                 print('terminating')
