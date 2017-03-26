@@ -25,8 +25,9 @@ def on_command_response(monitor, command, response):
         if last_pause_state is not None \
                 and last_playback_position is not None \
                 and last_path is not None:
-            print('got everything for a scrobble', last_pause_state, last_playback_position,
-                  last_path)
+            pass
+            # print('got everything for a scrobble', last_pause_state, last_playback_position,
+            #       last_path)
             last_pause_state = None
             last_playback_position = None
             last_path = None

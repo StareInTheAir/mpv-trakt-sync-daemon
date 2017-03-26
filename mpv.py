@@ -33,7 +33,7 @@ class MpvMonitor:
 
     def on_line(self, line):
         mpv_json = json.loads(line)
-        print(mpv_json)
+        # print(mpv_json)
         if 'event' in mpv_json:
             threading.Thread(target=self.on_event,
                              kwargs={'monitor': self, 'event': mpv_json}).start()
@@ -56,7 +56,7 @@ class MpvMonitor:
 
     def send_command(self, elements):
         command = {'command': elements, 'request_id': self.command_counter}
-        print(command)
+        # print(command)
         with self.lock:
             self.write(str.encode(json.dumps(command) + '\n'))
             self.sent_commands[self.command_counter] = command
@@ -82,6 +82,7 @@ class PosixMpvMonitor(MpvMonitor):
         self.sock = socket.socket(socket.AF_UNIX)
         self.sock.connect(self.socket_path)
 
+        print('POSIX socket connected')
         self.fire_connected()
 
         while True:
@@ -122,6 +123,7 @@ class WindowsMpvMonitor(MpvMonitor):
                 print('OSError. Trying again')
                 sleep(0.01)
 
+        print('Windows named pipe connected')
         self.fire_connected()
 
         while True:
