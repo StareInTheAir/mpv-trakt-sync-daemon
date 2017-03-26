@@ -38,11 +38,15 @@ class MpvMonitor:
             threading.Thread(target=self.on_event,
                              kwargs={'monitor': self, 'event': mpv_json}).start()
         elif 'request_id' in mpv_json:
-            request_id = mpv_json['request_id']
-            threading.Thread(target=self.on_command_response,
-                             kwargs={'monitor': self, 'command': self.sent_commands[request_id],
-                                     'response': mpv_json}).start()
-            del self.sent_commands[request_id]
+            with self.lock:
+                request_id = mpv_json['request_id']
+                if request_id not in self.sent_commands:
+                    print('got response for unsent command request', mpv_json)
+                else:
+                    threading.Thread(target=self.on_command_response,
+                                     kwargs={'monitor': self, 'command': self.sent_commands[request_id],
+                                             'response': mpv_json}).start()
+                    del self.sent_commands[request_id]
         else:
             print('Unknown mpv output: ' + line)
 
@@ -58,9 +62,9 @@ class MpvMonitor:
         command = {'command': elements, 'request_id': self.command_counter}
         # print(command)
         with self.lock:
-            self.write(str.encode(json.dumps(command) + '\n'))
             self.sent_commands[self.command_counter] = command
             self.command_counter += 1
+            self.write(str.encode(json.dumps(command) + '\n'))
 
     def send_get_property_command(self, property_name):
         self.send_command(['get_property', property_name])
