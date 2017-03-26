@@ -37,7 +37,7 @@ class MpvMonitor:
         if 'event' in mpv_json:
             threading.Thread(target=self.on_event,
                              kwargs={'monitor': self, 'event': mpv_json}).start()
-        elif 'data' in mpv_json:
+        elif 'request_id' in mpv_json:
             request_id = mpv_json['request_id']
             threading.Thread(target=self.on_command_response,
                              kwargs={'monitor': self, 'command': self.sent_commands[request_id],
