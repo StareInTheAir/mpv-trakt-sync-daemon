@@ -89,13 +89,12 @@ class PosixMpvMonitor(MpvMonitor):
         print('POSIX socket connected')
         self.fire_connected()
 
-        while True:
-            data = self.sock.recv(512)
-            if len(data) == 0:
-                print('POSIX socket closed')
-                break
+        data = self.sock.recv(512)
+        while len(data) != 0:
             for line in data.decode('utf-8').splitlines():
                 self.on_line(line)
+            data = self.sock.recv(512)
+        print('POSIX socket closed')
         self.sock.close()
         self.sock = None
 
@@ -130,12 +129,11 @@ class WindowsMpvMonitor(MpvMonitor):
         print('Windows named pipe connected')
         self.fire_connected()
 
-        while True:
-            line = self.pipe.readline()
-            if len(line) == 0:
-                print('Windows named pipe closed')
-                break
+        line = self.pipe.readline()
+        while len(line) != 0:
             self.on_line(line)
+            line = self.pipe.readline()
+        print('Windows named pipe closed')
         self.pipe.close()
         self.pipe = None
 
