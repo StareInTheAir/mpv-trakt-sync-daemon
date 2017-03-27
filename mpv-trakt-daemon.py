@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json
 import threading
-from time import sleep
+import time
 
 import guessit
 import os
@@ -122,12 +122,12 @@ def main():
             # If run() returns, mpv was closed.
             # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
             # So we need to give mpv some time to close gracefully.
-            sleep(1)
+            time.sleep(1)
         else:
             # sleep before next attempt
             try:
                 print('mpv not open sleeping')
-                sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
+                time.sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
             except KeyboardInterrupt:
                 print('terminating')
                 break
