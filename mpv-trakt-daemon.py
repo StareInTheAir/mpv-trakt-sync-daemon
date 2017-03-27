@@ -10,7 +10,7 @@ import requests
 import mpv
 
 TRAKT_CLIENT_ID = '24c7a86d0a55334a9575734decac760cea679877fcb60b0983cbe45996242dd7'
-TRAKT_ID_CACHE_JSON = 'trakt-ids.json'
+TRAKT_ID_CACHE_JSON = 'trakt_ids.json'
 MPV_WINDOWS_NAMED_PIPE_PATH = r'\\.\pipe\mpv'
 MPV_POSIX_SOCKET_PATH = '/tmp/mpv-socket'
 SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5
