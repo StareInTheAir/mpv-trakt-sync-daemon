@@ -35,28 +35,34 @@ class MpvMonitor:
         mpv_json = json.loads(line)
         # print(mpv_json)
         if 'event' in mpv_json:
-            threading.Thread(target=self.on_event,
-                             kwargs={'monitor': self, 'event': mpv_json}).start()
+            if self.on_event is not None:
+                self.on_event(self, mpv_json)
+            # threading.Thread(target=self.on_event,
+            #                  kwargs={'monitor': self, 'event': mpv_json}).start()
         elif 'request_id' in mpv_json:
             with self.lock:
                 request_id = mpv_json['request_id']
                 if request_id not in self.sent_commands:
                     print('got response for unsent command request', mpv_json)
                 else:
-                    threading.Thread(target=self.on_command_response,
-                                     kwargs={'monitor': self, 'command': self.sent_commands[request_id],
-                                             'response': mpv_json}).start()
+                    if self.on_command_response is not None:
+                        self.on_command_response(self, self.sent_commands[request_id], mpv_json)
+                    # threading.Thread(target=self.on_command_response,
+                    #                  kwargs={'monitor': self, 'command': self.sent_commands[request_id],
+                    #                          'response': mpv_json}).start()
                     del self.sent_commands[request_id]
         else:
             print('Unknown mpv output: ' + line)
 
     def fire_connected(self):
         if self.on_connected is not None:
-            threading.Thread(target=self.on_connected, kwargs={'monitor': self}).start()
+            self.on_connected(self)
+            # threading.Thread(target=self.on_connected, kwargs={'monitor': self}).start()
 
     def fire_disconnected(self):
         if self.on_disconnected is not None:
-            threading.Thread(target=self.on_disconnected).start()
+            self.on_disconnected()
+            # threading.Thread(target=self.on_disconnected).start()
 
     def send_command(self, elements):
         command = {'command': elements, 'request_id': self.command_counter}
