@@ -11,60 +11,100 @@ import mpv
 
 TRAKT_CLIENT_ID = '24c7a86d0a55334a9575734decac760cea679877fcb60b0983cbe45996242dd7'
 TRAKT_ID_CACHE_JSON = 'trakt_ids.json'
+
 MPV_WINDOWS_NAMED_PIPE_PATH = r'\\.\pipe\mpv'
 MPV_POSIX_SOCKET_PATH = '/tmp/mpv-socket'
-SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5
-SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC = 1
+
+SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5.0
+SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC = 1.0
+FACTOR_MUST_WATCH_BEFORE_SCROBBLE = 0.1
+PERCENT_MINIMAL_PLAYBACK_POSITION_BEFORE_SCROBBLE = 90.0
 
 monitored_directories = ['/mnt/sybefra/', '/run/media/hans/wde/',
                          'http://syncthing-hub-becker-frankfurt-odroid:1113/']
 
-last_pause_state = None
+last_is_paused = None
 last_playback_position = None
 last_path = None
+last_duration = None
+last_file_start_timestamp = None
 
 last_timer = None
 
 
 def on_command_response(monitor, command, response):
-    global last_pause_state, last_playback_position, last_path
+    global last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp
     global last_timer
 
     last_command_elements = command['command']
     if last_command_elements[0] == 'get_property':
         if last_command_elements[1] == 'pause':
-            last_pause_state = response['data']
+            last_is_paused = response['data']
+            if not last_is_paused and last_file_start_timestamp is None:
+                last_file_start_timestamp = time.time()
         elif last_command_elements[1] == 'percent-pos':
             last_playback_position = response['data']
         elif last_command_elements[1] == 'path':
             last_path = response['data']
-        if last_pause_state is not None \
+        elif last_command_elements[1] == 'duration':
+            last_duration = response['data']
+            print(last_duration, last_duration * FACTOR_MUST_WATCH_BEFORE_SCROBBLE)
+        if last_is_paused is not None \
                 and last_playback_position is not None \
-                and last_path is not None:
+                and last_path is not None \
+                and last_duration is not None:
             if last_timer is not None:
                 last_timer.cancel()
             last_timer = threading.Timer(SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC, sync_to_trakt,
-                                         (last_pause_state, last_playback_position, last_path))
+                                         (last_is_paused, last_playback_position, last_path, last_duration,
+                                          last_file_start_timestamp))
             last_timer.start()
-            last_pause_state = None
+            last_is_paused = None
             last_playback_position = None
             last_path = None
+            last_duration = None
 
 
 def on_event(monitor, event):
-    print(event)
     event_name = event['event']
     if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek' or event_name == 'start-file':
         issue_scrobble_commands(monitor)
+
+
+def on_disconnected():
+    global last_file_start_timestamp
+    last_file_start_timestamp = None
+
+    if last_timer is not None:
+        last_timer.cancel()
 
 
 def issue_scrobble_commands(monitor):
     monitor.send_get_property_command('path')
     monitor.send_get_property_command('percent-pos')
     monitor.send_get_property_command('pause')
+    monitor.send_get_property_command('duration')
 
 
-def sync_to_trakt(pause_state, playback_position, path):
+def get_watch_state(is_paused, playback_position, duration, start_time):
+    if start_time is not None:
+        watch_time = time.time() - start_time
+        # only consider a session finished if
+        #   at least a minimal playback position is reached
+        # and
+        #   the session is running long enough
+        if playback_position >= PERCENT_MINIMAL_PLAYBACK_POSITION_BEFORE_SCROBBLE \
+                and watch_time >= duration * FACTOR_MUST_WATCH_BEFORE_SCROBBLE:
+            return 'finished'
+    if is_paused:
+        return 'paused'
+    else:
+        return 'watching'
+
+
+def sync_to_trakt(is_paused, playback_position, path, duration, start_time):
+    print(get_watch_state(is_paused, playback_position, duration, start_time))
+
     for monitored_directory in monitored_directories:
         if path.startswith(monitored_directory):
             guess = guessit.guessit(path)
@@ -105,11 +145,6 @@ def sync_to_trakt(pause_state, playback_position, path):
                 json.dump(id_cache, file)
 
             return
-
-
-def on_disconnected():
-    if last_timer is not None:
-        last_timer.cancel()
 
 
 def main():
