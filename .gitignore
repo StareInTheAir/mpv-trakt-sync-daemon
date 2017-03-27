@@ -4,3 +4,4 @@ venv/
 __pycache__/
 client_secret_holder.py
 trakt_token.json
+trakt_ids.json
