@@ -29,12 +29,12 @@ last_path = None
 last_duration = None
 last_file_start_timestamp = None
 
-last_timer = None
+next_sync_timer = None
 
 
 def on_command_response(monitor, command, response):
     global last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp
-    global last_timer
+    global next_sync_timer
 
     last_command_elements = command['command']
     if last_command_elements[0] == 'get_property':
@@ -53,12 +53,12 @@ def on_command_response(monitor, command, response):
                 and last_playback_position is not None \
                 and last_path is not None \
                 and last_duration is not None:
-            if last_timer is not None:
-                last_timer.cancel()
-            last_timer = threading.Timer(SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC, sync_to_trakt,
-                                         (last_is_paused, last_playback_position, last_path, last_duration,
-                                          last_file_start_timestamp))
-            last_timer.start()
+            if next_sync_timer is not None:
+                next_sync_timer.cancel()
+            next_sync_timer = threading.Timer(SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC, sync_to_trakt,
+                                              (last_is_paused, last_playback_position, last_path, last_duration,
+                                               last_file_start_timestamp))
+            next_sync_timer.start()
             last_is_paused = None
             last_playback_position = None
             last_path = None
@@ -75,8 +75,8 @@ def on_disconnected():
     global last_file_start_timestamp
     last_file_start_timestamp = None
 
-    if last_timer is not None:
-        last_timer.cancel()
+    if next_sync_timer is not None:
+        next_sync_timer.cancel()
 
 
 def issue_scrobble_commands(monitor):
