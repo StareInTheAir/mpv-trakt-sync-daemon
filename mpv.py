@@ -32,7 +32,11 @@ class MpvMonitor:
         pass
 
     def on_line(self, line):
-        mpv_json = json.loads(line)
+        try:
+            mpv_json = json.loads(line)
+        except json.JSONDecodeError:
+            print('invalid JSON received. skipping.', line)
+            return
         # print(mpv_json)
         if 'event' in mpv_json:
             if self.on_event is not None:
