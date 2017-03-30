@@ -165,7 +165,7 @@ def main():
                 time.sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
             except KeyboardInterrupt:
                 print('terminating')
-                break
+                quit(0)
 
 
 if __name__ == '__main__':
