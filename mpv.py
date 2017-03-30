@@ -104,7 +104,7 @@ class PosixMpvMonitor(MpvMonitor):
                 data = self.sock.recv(512)
             except KeyboardInterrupt:
                 print('terminating')
-                quit(0)  # todo: doesn't terminate, because thread is not main thread
+                quit(0)  # todo: doesn't terminate, idk why
             if len(data) == 0:
                 break
             for line in data.decode('utf-8').splitlines():
@@ -150,7 +150,7 @@ class WindowsMpvMonitor(MpvMonitor):
                 line = self.pipe.readline()
             except KeyboardInterrupt:
                 print('terminating')
-                quit(0)  # todo: doesn't terminate, because thread is not main thread
+                quit(0)  # todo: doesn't terminate, idk why
             if len(line) == 0:
                 break
             self.on_line(line)
