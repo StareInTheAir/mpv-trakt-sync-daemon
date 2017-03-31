@@ -158,7 +158,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time):
             if guess['type'] == 'episode':
                 if guess['title'].lower() not in id_cache['shows']:
                     print('requesting trakt id for show', guess['title'])
-                    req = requests.get('https://api.trakt.tv/search/show?field=title&query=%s' % guess['title'],
+                    req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
                                        headers={'trakt-api-version': '2', 'trakt-api-key': TRAKT_CLIENT_ID})
                     if req.status_code == 200 and len(req.json()) > 0:
                         id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
@@ -169,7 +169,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time):
             elif guess['type'] == 'movie':
                 print('requesting trakt id for movie', guess['title'])
                 if guess['title'].lower() not in id_cache['movies']:
-                    req = requests.get('https://api.trakt.tv/search/movie?field=title&query=%s' % guess['title'],
+                    req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
                                        headers={'trakt-api-version': '2', 'trakt-api-key': TRAKT_CLIENT_ID})
                     if req.status_code == 200 and len(req.json()) > 0:
                         id_cache['movies'][guess['title'].lower()] = req.json()[0]['movie']['ids']['trakt']
