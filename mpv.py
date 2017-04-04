@@ -1,6 +1,5 @@
 import json
 import socket
-import sys
 import threading
 from time import sleep
 
@@ -64,7 +63,6 @@ class MpvMonitor:
 
     def send_command(self, elements):
         command = {'command': elements, 'request_id': self.command_counter}
-        # print(command)
         with self.lock:
             self.sent_commands[self.command_counter] = command
             self.command_counter += 1
@@ -104,7 +102,7 @@ class PosixMpvMonitor(MpvMonitor):
                 break
             buffer = buffer + data.decode('utf-8')
             if buffer.find('\n') == -1:
-                print('received partial line', file=sys.stderr)
+                print('received partial line', buffer)
             while True:
                 line_end = buffer.find('\n')
                 if line_end == -1:

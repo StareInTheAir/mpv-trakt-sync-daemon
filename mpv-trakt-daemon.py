@@ -144,7 +144,6 @@ def is_finished(playback_position, duration, start_time):
 
 
 def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_closed):
-    print('sync_to_trakt')
     do_sync = False
 
     for monitored_directory in monitored_directories:
