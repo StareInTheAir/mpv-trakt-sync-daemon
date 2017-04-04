@@ -82,6 +82,8 @@ def on_event(monitor, event):
 
 
 def on_connected(monitor):
+    global is_local_state_dirty
+    is_local_state_dirty = True
     issue_scrobble_commands(monitor)
 
 
