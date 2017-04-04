@@ -107,6 +107,11 @@ class PosixMpvMonitor(MpvMonitor):
                 quit(0)  # todo: doesn't terminate, idk why
             if len(data) == 0:
                 break
+            # todo bug: occasionally bytes returned from recv() are not a complete line:
+            # Part 1: {"data":154.800000,"request_id":32,"error":"succes
+            # Part 2: s"}
+            # json parsing then fails
+            # We have to concat all of recv() data, find \n and only then call on_line()
             for line in data.decode('utf-8').splitlines():
                 self.on_line(line)
 
