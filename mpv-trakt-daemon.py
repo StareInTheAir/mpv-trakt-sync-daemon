@@ -100,7 +100,8 @@ def on_disconnected():
             and last_playback_position is not None \
             and last_path is not None \
             and last_duration is not None:
-        sync_to_trakt(last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp, True)
+        threading.Thread(target=sync_to_trakt, args=(
+            last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp, True)).start()
 
     last_is_paused = None
     last_playback_position = None
