@@ -157,7 +157,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
         guess = guessit.guessit(path)
 
         # load cached ids
-        if os.path.exists(TRAKT_ID_CACHE_JSON):
+        if os.path.isfile(TRAKT_ID_CACHE_JSON):
             with open(TRAKT_ID_CACHE_JSON) as file:
                 id_cache = json.load(file)
         else:
@@ -166,6 +166,9 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
                 'shows': {}
             }
 
+        # constructing data to be sent to trakt
+        # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it
+        # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
         data = None
         if guess['type'] == 'episode':
             if guess['title'].lower() not in id_cache['shows']:
@@ -189,7 +192,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
                     print('trakt request failed or unknown movie', guess)
             data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
         else:
-            print('Unknown guessit type', guess['type'])
+            print('Unknown guessit type', guess)
 
         # update cached ids file
         with open(TRAKT_ID_CACHE_JSON, mode='w') as file:
@@ -256,7 +259,7 @@ def main():
         else:
             # sleep before next attempt
             try:
-                print('mpv not open sleeping')
+                # mpv not open. sleeping
                 time.sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
             except KeyboardInterrupt:
                 print('terminating')
