@@ -249,23 +249,26 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
 def main():
     monitor = mpv.MpvMonitor.create(MPV_POSIX_SOCKET_PATH, MPV_WINDOWS_NAMED_PIPE_PATH,
                                     on_connected, on_event, on_command_response, on_disconnected)
-    trakt_v2_oauth.get_access_token()  # prompts authentication, if necessary
-    while True:
-        if monitor.can_open():
-            monitor.run()
-            print('mpv closed')
-            # If run() returns, mpv was closed.
-            # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
-            # So we need to give mpv some time to close gracefully.
-            time.sleep(1)
-        else:
-            # sleep before next attempt
-            try:
-                # mpv not open. sleeping
+    try:
+        trakt_v2_oauth.get_access_token()  # prompts authentication, if necessary
+        while True:
+            if monitor.can_open():
+                # call monitor.run() as a daemon thread, so that all SIGTERMs are handled here
+                # Daemon threads die automatically, when the main process ends
+                thread = threading.Thread(target=monitor.run, daemon=True)
+                thread.start()
+                thread.join()
+                # If run() returns, mpv was closed.
+                print('mpv closed')
+                # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
+                # So we need to give mpv some time to close gracefully.
+                time.sleep(1)
+            else:
+                # mpv not open
+                # sleep before next attempt
                 time.sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
-            except KeyboardInterrupt:
-                print('terminating')
-                quit(0)
+    except KeyboardInterrupt:
+        print('terminating')
 
 
 if __name__ == '__main__':

@@ -93,11 +93,7 @@ class PosixMpvMonitor(MpvMonitor):
 
         buffer = ''
         while True:
-            try:
-                data = self.sock.recv(512)
-            except KeyboardInterrupt:
-                print('terminating')
-                quit(0)  # todo: doesn't terminate, idk why
+            data = self.sock.recv(512)
             if len(data) == 0:
                 break
             buffer = buffer + data.decode('utf-8')
@@ -147,11 +143,7 @@ class WindowsMpvMonitor(MpvMonitor):
         self.fire_connected()
 
         while True:
-            try:
-                line = self.pipe.readline()
-            except KeyboardInterrupt:
-                print('terminating')
-                quit(0)  # todo: doesn't terminate, idk why
+            line = self.pipe.readline()
             if len(line) == 0:
                 break
             self.on_line(line)
