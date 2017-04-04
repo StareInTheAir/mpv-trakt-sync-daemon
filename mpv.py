@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 import threading
 from time import sleep
 
@@ -99,6 +100,7 @@ class PosixMpvMonitor(MpvMonitor):
         print('POSIX socket connected')
         self.fire_connected()
 
+        buffer = ''
         while True:
             try:
                 data = self.sock.recv(512)
@@ -107,13 +109,16 @@ class PosixMpvMonitor(MpvMonitor):
                 quit(0)  # todo: doesn't terminate, idk why
             if len(data) == 0:
                 break
-            # todo bug: occasionally bytes returned from recv() are not a complete line:
-            # Part 1: {"data":154.800000,"request_id":32,"error":"succes
-            # Part 2: s"}
-            # json parsing then fails
-            # We have to concat all of recv() data, find \n and only then call on_line()
-            for line in data.decode('utf-8').splitlines():
-                self.on_line(line)
+            buffer = buffer + data.decode('utf-8')
+            if buffer.find('\n') == -1:
+                print('received partial line', file=sys.stderr)
+            while True:
+                line_end = buffer.find('\n')
+                if line_end == -1:
+                    break
+                else:
+                    self.on_line(buffer[:line_end])  # doesn't include \n
+                    buffer = buffer[line_end + 1:]  # doesn't include \n
 
         print('POSIX socket closed')
         self.sock.close()
