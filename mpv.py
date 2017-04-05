@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 import threading
 from time import sleep
 
@@ -8,13 +9,35 @@ import os
 
 class MpvMonitor:
     @staticmethod
-    def create(posix_socket_path, windows_named_pipe_path, on_connected=None, on_event=None, on_command_response=None,
-               on_disconnected=None):
+    def create(on_connected=None, on_event=None, on_command_response=None, on_disconnected=None,
+               mpv_ipc_path='auto-detect'):
+
+        if mpv_ipc_path == 'auto-detect':
+            if os.name == 'posix':
+                config_path = os.path.expanduser('~/.config/mpv/mpv.conf')
+            elif os.name == 'nt':
+                config_path = os.path.expandvars('%APPDATA%/mpv/mpv.conf')
+            else:
+                print('Unknown operating system: ' + os.name, file=sys.stderr)
+                sys.exit(11)
+            lines = open(config_path).readlines()
+            for line in lines:
+                stripped_line = line.strip()
+                if stripped_line.startswith('input-ipc-server='):
+                    mpv_ipc_path = stripped_line[stripped_line.index('=') + 1:]
+                    break
+            if mpv_ipc_path == 'auto-detect':
+                print('Could not auto-detect mpv IPC path. '
+                      'Make sure you have a input-ipc-server=<path> entry in your mpv.conf', file=sys.stderr)
+                sys.exit(22)
+
         if os.name == 'posix':
-            return PosixMpvMonitor(posix_socket_path, on_connected, on_event, on_command_response, on_disconnected)
+            return PosixMpvMonitor(mpv_ipc_path, on_connected, on_event, on_command_response, on_disconnected)
         elif os.name == 'nt':
-            return WindowsMpvMonitor(windows_named_pipe_path, on_connected, on_event, on_command_response,
-                                     on_disconnected)
+            return WindowsMpvMonitor(mpv_ipc_path, on_connected, on_event, on_command_response, on_disconnected)
+        else:
+            print('Unknown operating system: ' + os.name, file=sys.stderr)
+            sys.exit(11)
 
     def __init__(self, on_connected, on_event, on_command_response, on_disconnected):
         self.lock = threading.Lock()

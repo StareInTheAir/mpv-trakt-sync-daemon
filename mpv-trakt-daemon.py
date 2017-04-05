@@ -3,18 +3,15 @@ import json
 import threading
 import time
 
+import client_key_holder
 import guessit
 import os
 import requests
 
-import client_key_holder
 import mpv
 import trakt_v2_oauth
 
 TRAKT_ID_CACHE_JSON = 'trakt_ids.json'
-
-MPV_WINDOWS_NAMED_PIPE_PATH = r'\\.\pipe\mpv'
-MPV_POSIX_SOCKET_PATH = '/tmp/mpv-socket'
 
 SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5.0
 SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC = 2.0
@@ -247,8 +244,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
 
 
 def main():
-    monitor = mpv.MpvMonitor.create(MPV_POSIX_SOCKET_PATH, MPV_WINDOWS_NAMED_PIPE_PATH,
-                                    on_connected, on_event, on_command_response, on_disconnected)
+    monitor = mpv.MpvMonitor.create(on_connected, on_event, on_command_response, on_disconnected)
     try:
         trakt_v2_oauth.get_access_token()  # prompts authentication, if necessary
         while True:
