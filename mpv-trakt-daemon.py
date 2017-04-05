@@ -185,12 +185,12 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
             print('Unknown guessit type', guess)
 
         # update cached ids file
-        with open(TRAKT_ID_CACHE_JSON, mode='w') as file:
+        with open(config['trakt_id_cache_json'], mode='w') as file:
             json.dump(id_cache, file)
 
         if data is not None:
             data['progress'] = playback_position
-            data['app_version'] = '0.5.0'
+            data['app_version'] = '0.9.0'
 
             finished = is_finished(playback_position, duration, start_time)
 
