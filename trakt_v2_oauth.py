@@ -1,12 +1,12 @@
 import datetime
-import time
 import json
-import os
 import sys
+import time
 
+import os
 import requests
 
-import client_secret_holder
+import client_key_holder
 
 client_id = '24c7a86d0a55334a9575734decac760cea679877fcb60b0983cbe45996242dd7'
 local_storage_json_file = './trakt_token.json'
@@ -27,7 +27,7 @@ def get_access_token():
         token_refresh_request = requests.post('https://api.trakt.tv/oauth/token', json={
             'refresh_token': tokens['refresh_token'],
             'client_id': client_id,
-            'client_secret': client_secret_holder.get(),
+            'client_secret': client_key_holder.get_secret(),
             'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
             'grant_type': 'refresh_token'
         })
@@ -62,7 +62,7 @@ def prompt_device_authentication():
             token_request = requests.post('https://api.trakt.tv/oauth/device/token', json={
                 'code': code_json['device_code'],
                 'client_id': client_id,
-                'client_secret': client_secret_holder.get()
+                'client_secret': client_key_holder.get_secret()
             })
             if token_request.status_code == 200:
                 token_json = token_request.json()
