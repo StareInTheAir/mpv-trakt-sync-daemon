@@ -1,0 +1,10 @@
+{
+  "monitored_directories": [
+  ],
+  "seconds_between_mpv_running_checks": 30.0,
+  "seconds_between_mpv_event_and_trakt_sync": 10.0,
+  "seconds_between_regular_get_property_commands": 30.0,
+  "factor_must_watch_before_scrobble": 0.1,
+  "percent_minimal_playback_position_before_scrobble": 90.0,
+  "trakt_id_cache_json": "trakt_ids.json"
+}

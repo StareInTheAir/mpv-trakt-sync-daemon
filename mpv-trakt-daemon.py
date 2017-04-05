@@ -11,15 +11,7 @@ import requests
 import mpv
 import trakt_v2_oauth
 
-TRAKT_ID_CACHE_JSON = 'trakt_ids.json'
-
-SECONDS_BETWEEN_MPV_RUNNING_CHECKS = 5.0
-SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC = 2.0
-SECONDS_BETWEEN_REGULAR_GET_PROPERTY_COMMANDS = 10.0
-FACTOR_MUST_WATCH_BEFORE_SCROBBLE = 0.1
-PERCENT_MINIMAL_PLAYBACK_POSITION_BEFORE_SCROBBLE = 90.0
-
-monitored_directories = []
+config = None
 
 last_is_paused = None
 last_playback_position = None
@@ -58,7 +50,7 @@ def on_command_response(monitor, command, response):
                     and last_duration is not None:
                 if next_sync_timer is not None:
                     next_sync_timer.cancel()
-                next_sync_timer = threading.Timer(SECONDS_BETWEEN_MPV_EVENT_AND_TRAKT_SYNC, sync_to_trakt,
+                next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
                                                   (last_is_paused, last_playback_position, last_path, last_duration,
                                                    last_file_start_timestamp, False))
                 next_sync_timer.start()
@@ -122,8 +114,8 @@ def schedule_regular_timer(monitor):
     global next_regular_timer
     if next_regular_timer is not None:
         next_regular_timer.cancel()
-    next_regular_timer = threading.Timer(SECONDS_BETWEEN_REGULAR_GET_PROPERTY_COMMANDS, issue_scrobble_commands,
-                                         [monitor])
+    next_regular_timer = threading.Timer(config['seconds_between_regular_get_property_commands'],
+                                         issue_scrobble_commands, [monitor])
     next_regular_timer.start()
 
 
@@ -134,8 +126,8 @@ def is_finished(playback_position, duration, start_time):
         #   at least a minimal playback position is reached
         # and
         #   the session is running long enough
-        if playback_position >= PERCENT_MINIMAL_PLAYBACK_POSITION_BEFORE_SCROBBLE \
-                and watch_time >= duration * FACTOR_MUST_WATCH_BEFORE_SCROBBLE:
+        if playback_position >= config['percent_minimal_playback_position_before_scrobble'] \
+                and watch_time >= duration * config['factor_must_watch_before_scrobble']:
             return True
     return False
 
@@ -143,28 +135,27 @@ def is_finished(playback_position, duration, start_time):
 def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_closed):
     do_sync = False
 
-    for monitored_directory in monitored_directories:
+    for monitored_directory in config['monitored_directories']:
         if path.startswith(monitored_directory):
             do_sync = True
             break
 
     # empty monitored_directories means: always sync
-    if len(monitored_directories) == 0:
+    if len(config['monitored_directories']) == 0:
         do_sync = True
 
     if do_sync:
         guess = guessit.guessit(path)
 
         # load cached ids
-        if os.path.isfile(TRAKT_ID_CACHE_JSON):
-            with open(TRAKT_ID_CACHE_JSON) as file:
+        if os.path.isfile(config['trakt_id_cache_json']):
+            with open(config['trakt_id_cache_json']) as file:
                 id_cache = json.load(file)
         else:
             id_cache = {
                 'movies': {},
                 'shows': {}
             }
-
         # constructing data to be sent to trakt
         # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it
         # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
@@ -244,6 +235,10 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
 
 
 def main():
+    with open('daemon-config.json') as file:
+        global config
+        config = json.load(file)
+
     monitor = mpv.MpvMonitor.create(on_connected, on_event, on_command_response, on_disconnected)
     try:
         trakt_v2_oauth.get_access_token()  # prompts authentication, if necessary
@@ -262,7 +257,7 @@ def main():
             else:
                 # mpv not open
                 # sleep before next attempt
-                time.sleep(SECONDS_BETWEEN_MPV_RUNNING_CHECKS)
+                time.sleep(config['seconds_between_mpv_running_checks'])
     except KeyboardInterrupt:
         print('terminating')
 
