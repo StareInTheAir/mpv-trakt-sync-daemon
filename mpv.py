@@ -16,7 +16,7 @@ class MpvMonitor:
             if os.name == 'posix':
                 config_path = os.path.expanduser('~/.config/mpv/mpv.conf')
             elif os.name == 'nt':
-                config_path = os.path.expandvars('%APPDATA%/mpv/mpv.conf')
+                config_path = os.path.expandvars('%APPDATA%\\mpv\\mpv.conf')
             else:
                 print('Unknown operating system: ' + os.name, file=sys.stderr)
                 sys.exit(11)
