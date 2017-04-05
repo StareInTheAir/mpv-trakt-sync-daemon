@@ -181,8 +181,8 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
             data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
                     'episode': {'season': guess['season'], 'number': guess['episode']}}
         elif guess['type'] == 'movie':
-            print('requesting trakt id for movie', guess['title'])
             if guess['title'].lower() not in id_cache['movies']:
+                print('requesting trakt id for movie', guess['title'])
                 req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
