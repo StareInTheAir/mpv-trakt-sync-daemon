@@ -174,7 +174,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
                 print('requesting trakt id for show', guess['title'])
                 req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
-                if req.status_code == 200 and len(req.json()) > 0:
+                if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
                 else:
                     print('trakt request failed or unknown show', guess)
