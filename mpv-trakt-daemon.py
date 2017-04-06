@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import json
-import threading
-import time
 import logging
 import sys
+import threading
+import time
 
 import client_key_holder
 import guessit
@@ -303,6 +303,7 @@ def register_exception_handler():
 
 if __name__ == '__main__':
     import logging.config
+
     logging.config.fileConfig('log.conf')
     register_exception_handler()
 

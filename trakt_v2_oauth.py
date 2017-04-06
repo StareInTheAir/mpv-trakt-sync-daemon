@@ -1,13 +1,12 @@
 import datetime
 import json
+import logging
 import sys
 import time
-import logging
-
-import os
-import requests
 
 import client_key_holder
+import os
+import requests
 
 log = logging.getLogger('mpvTraktSync')
 
@@ -79,10 +78,9 @@ def prompt_device_authentication():
             log.critical('Could not get access token. Please try again.')
             sys.exit(5)
 
-
     else:
         log.critical('POST request for generating device codes failed with HTTP code %d.\n%s' %
-                 (code_request.status_code, code_request.text))
+                     (code_request.status_code, code_request.text))
         sys.exit(6)
 
 

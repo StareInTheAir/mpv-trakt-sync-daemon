@@ -1,8 +1,8 @@
 import json
+import logging
 import socket
 import sys
 import threading
-import logging
 from time import sleep
 
 import os
@@ -31,7 +31,7 @@ class MpvMonitor:
                     break
             if mpv_ipc_path == 'auto-detect':
                 log.critical('Could not auto-detect mpv IPC path. '
-                      'Make sure you have a input-ipc-server=<path> entry in your mpv.conf')
+                             'Make sure you have a input-ipc-server=<path> entry in your mpv.conf')
                 sys.exit(22)
 
         if os.name == 'posix':
