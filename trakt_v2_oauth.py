@@ -2,6 +2,7 @@ import datetime
 import json
 import sys
 import time
+import logging
 
 import os
 import requests
@@ -9,6 +10,8 @@ import requests
 import client_key_holder
 
 client_id = '24c7a86d0a55334a9575734decac760cea679877fcb60b0983cbe45996242dd7'
+log = logging.getLogger('mpvTraktSync')
+
 local_storage_json_file = './trakt_token.json'
 
 
@@ -23,7 +26,7 @@ def get_access_token():
 
     # make sure the token is at least valid for the next day
     if remaining_time < datetime.timedelta(days=1):
-        print('Token expired')
+        log.info('Token expired')
         token_refresh_request = requests.post('https://api.trakt.tv/oauth/token', json={
             'refresh_token': tokens['refresh_token'],
             'client_id': client_id,
@@ -33,7 +36,7 @@ def get_access_token():
         })
 
         if token_refresh_request.status_code == 200:
-            print('Successfully refreshed token')
+            log.info('Successfully refreshed token')
             # save response to local json file
             json.dump(token_refresh_request.json(), open(local_storage_json_file, 'w'))
 
@@ -67,18 +70,21 @@ def prompt_device_authentication():
             if token_request.status_code == 200:
                 token_json = token_request.json()
                 json.dump(token_json, open(local_storage_json_file, 'w'))
-                print('\nSuccessfully established access to trakt account')
+                log.info('\nSuccessfully established access to trakt account')
                 got_access_token = True
                 break
             else:
                 print(str(token_request.status_code) + ' ', end='', flush=True)
 
         if not got_access_token:
-            sys.exit('\nCould not get access token. Please try again.')
+            log.critical('Could not get access token. Please try again.')
+            sys.exit(5)
+
 
     else:
-        sys.exit('POST request for generating device codes failed with HTTP code %d.\n%s' %
+        log.critical('POST request for generating device codes failed with HTTP code %d.\n%s' %
                  (code_request.status_code, code_request.text))
+        sys.exit(6)
 
 
 if __name__ == '__main__':

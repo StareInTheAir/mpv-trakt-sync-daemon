@@ -2,9 +2,12 @@ import json
 import socket
 import sys
 import threading
+import logging
 from time import sleep
 
 import os
+
+log = logging.getLogger('mpvTraktSync')
 
 
 class MpvMonitor:
@@ -18,7 +21,7 @@ class MpvMonitor:
             elif os.name == 'nt':
                 config_path = os.path.expandvars('%APPDATA%\\mpv\\mpv.conf')
             else:
-                print('Unknown operating system: ' + os.name, file=sys.stderr)
+                log.critical('Unknown operating system: ' + os.name)
                 sys.exit(11)
             lines = open(config_path).readlines()
             for line in lines:
@@ -27,8 +30,8 @@ class MpvMonitor:
                     mpv_ipc_path = stripped_line[stripped_line.index('=') + 1:]
                     break
             if mpv_ipc_path == 'auto-detect':
-                print('Could not auto-detect mpv IPC path. '
-                      'Make sure you have a input-ipc-server=<path> entry in your mpv.conf', file=sys.stderr)
+                log.critical('Could not auto-detect mpv IPC path. '
+                      'Make sure you have a input-ipc-server=<path> entry in your mpv.conf')
                 sys.exit(22)
 
         if os.name == 'posix':
@@ -36,7 +39,7 @@ class MpvMonitor:
         elif os.name == 'nt':
             return WindowsMpvMonitor(mpv_ipc_path, on_connected, on_event, on_command_response, on_disconnected)
         else:
-            print('Unknown operating system: ' + os.name, file=sys.stderr)
+            log.critical('Unknown operating system: ' + os.name, file=sys.stderr)
             sys.exit(11)
 
     def __init__(self, on_connected, on_event, on_command_response, on_disconnected):
@@ -58,9 +61,9 @@ class MpvMonitor:
         try:
             mpv_json = json.loads(line)
         except json.JSONDecodeError:
-            print('invalid JSON received. skipping.', line)
+            log.warning('invalid JSON received. skipping. ' + line)
             return
-        # print(mpv_json)
+        log.debug(mpv_json)
         if 'event' in mpv_json:
             if self.on_event is not None:
                 self.on_event(self, mpv_json)
@@ -68,13 +71,13 @@ class MpvMonitor:
             with self.lock:
                 request_id = mpv_json['request_id']
                 if request_id not in self.sent_commands:
-                    print('got response for unsent command request', mpv_json)
+                    log.warning('got response for unsent command request ' + mpv_json)
                 else:
                     if self.on_command_response is not None:
                         self.on_command_response(self, self.sent_commands[request_id], mpv_json)
                     del self.sent_commands[request_id]
         else:
-            print('Unknown mpv output: ' + line)
+            log.warning('Unknown mpv output: ' + line)
 
     def fire_connected(self):
         if self.on_connected is not None:
@@ -111,7 +114,7 @@ class PosixMpvMonitor(MpvMonitor):
         self.sock = socket.socket(socket.AF_UNIX)
         self.sock.connect(self.socket_path)
 
-        print('POSIX socket connected')
+        log.info('POSIX socket connected')
         self.fire_connected()
 
         buffer = ''
@@ -121,7 +124,7 @@ class PosixMpvMonitor(MpvMonitor):
                 break
             buffer = buffer + data.decode('utf-8')
             if buffer.find('\n') == -1:
-                print('received partial line', buffer)
+                log.warning('received partial line: ' + buffer)
             while True:
                 line_end = buffer.find('\n')
                 if line_end == -1:
@@ -130,7 +133,7 @@ class PosixMpvMonitor(MpvMonitor):
                     self.on_line(buffer[:line_end])  # doesn't include \n
                     buffer = buffer[line_end + 1:]  # doesn't include \n
 
-        print('POSIX socket closed')
+        log.info('POSIX socket closed')
         self.sock.close()
         self.sock = None
 
@@ -159,10 +162,10 @@ class WindowsMpvMonitor(MpvMonitor):
             except OSError:
                 # Sometimes Windows can't open the named pipe directly. I suspect a interaction between os.path.isfile()
                 # and directly following open(). Sleeping for a short time and trying again seems to help.
-                print('OSError. Trying again')
+                log.warning('OSError. Trying again')
                 sleep(0.01)
 
-        print('Windows named pipe connected')
+        log.info('Windows named pipe connected')
         self.fire_connected()
 
         while True:
@@ -171,7 +174,7 @@ class WindowsMpvMonitor(MpvMonitor):
                 break
             self.on_line(line)
 
-        print('Windows named pipe closed')
+        log.info('Windows named pipe closed')
         self.pipe.close()
         self.pipe = None
 
@@ -179,6 +182,6 @@ class WindowsMpvMonitor(MpvMonitor):
 
     def write(self, data):
         if self.pipe.closed:
-            print('Windows named pipe was closed. Can\'t send data: ' + str(data))
+            log.warning('Windows named pipe was closed. Can\'t send data: ' + str(data))
         else:
             self.pipe.write(data)

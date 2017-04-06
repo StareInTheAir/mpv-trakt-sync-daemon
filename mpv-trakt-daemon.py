@@ -2,6 +2,7 @@
 import json
 import threading
 import time
+import logging
 
 import client_key_holder
 import guessit
@@ -10,6 +11,8 @@ import requests
 
 import mpv
 import trakt_v2_oauth
+
+log = logging.getLogger('mpvTraktSync')
 
 config = None
 
@@ -146,6 +149,7 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
 
     if do_sync:
         guess = guessit.guessit(path)
+        log.debug(guess)
 
         # load cached ids
         if os.path.isfile(config['trakt_id_cache_json']):
@@ -162,27 +166,27 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
         data = None
         if guess['type'] == 'episode':
             if guess['title'].lower() not in id_cache['shows']:
-                print('requesting trakt id for show', guess['title'])
+                log.info('requesting trakt id for show ' + guess['title'])
                 req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
                 else:
-                    print('trakt request failed or unknown show', guess)
+                    log.warning('trakt request failed or unknown show ' + guess)
             data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
                     'episode': {'season': guess['season'], 'number': guess['episode']}}
         elif guess['type'] == 'movie':
             if guess['title'].lower() not in id_cache['movies']:
-                print('requesting trakt id for movie', guess['title'])
+                log.info('requesting trakt id for movie ' + guess['title'])
                 req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['movies'][guess['title'].lower()] = req.json()[0]['movie']['ids']['trakt']
                 else:
-                    print('trakt request failed or unknown movie', guess)
+                    log.warning('trakt request failed or unknown movie ' + guess)
             data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
         else:
-            print('Unknown guessit type', guess)
+            log.warning('Unknown guessit type ' + guess)
 
         # update cached ids file
         with open(config['trakt_id_cache_json'], mode='w') as file:
@@ -228,13 +232,15 @@ def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_
                                 json=data,
                                 headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id(),
                                          'Authorization': 'Bearer ' + trakt_v2_oauth.get_access_token()})
-            print(url, req.status_code, req.text)
+            log.info('%s %s %s', url, req.status_code, req.text)
             if 200 <= req.status_code < 300:
                 global is_local_state_dirty
                 is_local_state_dirty = False
 
 
 def main():
+    log.info('launched')
+
     with open('daemon-config.json') as file:
         global config
         config = json.load(file)
@@ -250,7 +256,7 @@ def main():
                 thread.start()
                 thread.join()
                 # If run() returns, mpv was closed.
-                print('mpv closed')
+                log.info('mpv closed')
                 # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
                 # So we need to give mpv some time to close gracefully.
                 time.sleep(1)
@@ -259,8 +265,12 @@ def main():
                 # sleep before next attempt
                 time.sleep(config['seconds_between_mpv_running_checks'])
     except KeyboardInterrupt:
-        print('terminating')
+        log.info('terminating')
+        logging.shutdown()
 
 
 if __name__ == '__main__':
+    import logging.config
+    logging.config.fileConfig('log.conf')
+
     main()
