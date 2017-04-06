@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import logging
+import sys
 
 import client_key_holder
 import guessit
@@ -269,8 +270,40 @@ def main():
         logging.shutdown()
 
 
+def register_exception_handler():
+    def error_catcher(*exc_info):
+        log.critical("Unhandled exception", exc_info=exc_info)
+
+    sys.excepthook = error_catcher
+
+    # from http://stackoverflow.com/a/31622038
+    """
+    Workaround for `sys.excepthook` thread bug from:
+    http://bugs.python.org/issue1230540
+
+    Call once from the main thread before creating any threads.
+    """
+
+    init_original = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+        init_original(self, *args, **kwargs)
+        run_original = self.run
+
+        def run_with_except_hook(*args2, **kwargs2):
+            try:
+                run_original(*args2, **kwargs2)
+            except Exception:
+                sys.excepthook(*sys.exc_info())
+
+        self.run = run_with_except_hook
+
+    threading.Thread.__init__ = init
+
+
 if __name__ == '__main__':
     import logging.config
     logging.config.fileConfig('log.conf')
+    register_exception_handler()
 
     main()
