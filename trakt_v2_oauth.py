@@ -9,7 +9,6 @@ import requests
 
 import client_key_holder
 
-client_id = '24c7a86d0a55334a9575734decac760cea679877fcb60b0983cbe45996242dd7'
 log = logging.getLogger('mpvTraktSync')
 
 local_storage_json_file = './trakt_token.json'
@@ -29,7 +28,7 @@ def get_access_token():
         log.info('Token expired')
         token_refresh_request = requests.post('https://api.trakt.tv/oauth/token', json={
             'refresh_token': tokens['refresh_token'],
-            'client_id': client_id,
+            'client_id': client_key_holder.get_id(),
             'client_secret': client_key_holder.get_secret(),
             'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
             'grant_type': 'refresh_token'
@@ -50,7 +49,7 @@ def get_access_token():
 
 def prompt_device_authentication():
     code_request = requests.post('https://api.trakt.tv/oauth/device/code', json={
-        'client_id': client_id
+        'client_id': client_key_holder.get_id()
     })
 
     if code_request.status_code == 200:
@@ -64,7 +63,7 @@ def prompt_device_authentication():
             time.sleep(code_json['interval'])
             token_request = requests.post('https://api.trakt.tv/oauth/device/token', json={
                 'code': code_json['device_code'],
-                'client_id': client_id,
+                'client_id': client_key_holder.get_id(),
                 'client_secret': client_key_holder.get_secret()
             })
             if token_request.status_code == 200:
