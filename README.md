@@ -21,7 +21,7 @@ Or on windows with:
 1. `virtualenv venv`
 1. `venv/Scripts/activate`
 1. `pip install -r requirements.txt`
-1. `python mpv-trakt-daemon.py`
+1. `python sync_daemon.py`
 
 ## useful resources
 - https://mpv.io/manual/master/#json-ipc

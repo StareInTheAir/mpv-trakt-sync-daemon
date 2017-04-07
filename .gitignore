@@ -1,9 +1,10 @@
 venv/
 .idea/
 *.iml
+.vscode/
 __pycache__/
+
 trakt_token.json
 trakt_ids.json
 client_key_holder_s.py
-.vscode/
-log.txt
+sync_daemon.log

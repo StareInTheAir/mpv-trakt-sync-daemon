@@ -5,7 +5,7 @@ Dim fso
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 If (fso.FileExists("venv\Scripts\pythonw.exe")) Then
-    shell.Run "venv\Scripts\pythonw.exe mpv-trakt-daemon.py"
+    shell.Run "venv\Scripts\pythonw.exe sync_daemon.py"
 Else
-    shell.Run "pythonw.exe mpv-trakt-daemon.py"
+    shell.Run "pythonw.exe sync_daemon.py"
 End If
