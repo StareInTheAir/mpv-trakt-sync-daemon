@@ -19,6 +19,7 @@ config = None
 
 last_is_paused = None
 last_playback_position = None
+last_working_dir = None
 last_path = None
 last_duration = None
 last_file_start_timestamp = None
@@ -30,7 +31,7 @@ next_regular_timer = None
 
 
 def on_command_response(monitor, command, response):
-    global last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp
+    global last_is_paused, last_playback_position, last_working_dir, last_path, last_duration, last_file_start_timestamp
     global next_sync_timer, next_regular_timer
     global is_local_state_dirty
 
@@ -42,6 +43,8 @@ def on_command_response(monitor, command, response):
                 last_file_start_timestamp = time.time()
         elif last_command_elements[1] == 'percent-pos':
             last_playback_position = response['data']
+        elif last_command_elements[1] == 'working-directory':
+            last_working_dir = response['data']
         elif last_command_elements[1] == 'path':
             last_path = response['data']
         elif last_command_elements[1] == 'duration':
@@ -50,13 +53,14 @@ def on_command_response(monitor, command, response):
             if is_local_state_dirty \
                     and last_is_paused is not None \
                     and last_playback_position is not None \
+                    and last_working_dir is not None \
                     and last_path is not None \
                     and last_duration is not None:
                 if next_sync_timer is not None:
                     next_sync_timer.cancel()
                 next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
-                                                  (last_is_paused, last_playback_position, last_path, last_duration,
-                                                   last_file_start_timestamp, False))
+                                                  (last_is_paused, last_playback_position, last_working_dir, last_path,
+                                                   last_duration, last_file_start_timestamp, False))
                 next_sync_timer.start()
 
 
@@ -68,7 +72,7 @@ def on_event(monitor, event):
         on_disconnected()
         on_connected(monitor)
 
-    if event_name == 'pause' or event_name == 'unpause' or event_name == 'seek':
+    elif event_name == 'pause' or event_name == 'unpause' or event_name == 'seek':
         global is_local_state_dirty
         is_local_state_dirty = True
         issue_scrobble_commands(monitor)
@@ -81,7 +85,7 @@ def on_connected(monitor):
 
 
 def on_disconnected():
-    global last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp
+    global last_is_paused, last_playback_position, last_working_dir, last_path, last_duration, last_file_start_timestamp
     global next_sync_timer, next_regular_timer
     global is_local_state_dirty
 
@@ -93,13 +97,16 @@ def on_disconnected():
 
     if last_is_paused is not None \
             and last_playback_position is not None \
+            and last_working_dir is not None \
             and last_path is not None \
             and last_duration is not None:
         threading.Thread(target=sync_to_trakt, args=(
-            last_is_paused, last_playback_position, last_path, last_duration, last_file_start_timestamp, True)).start()
+            last_is_paused, last_playback_position, last_working_dir, last_path, last_duration,
+            last_file_start_timestamp, True)).start()
 
     last_is_paused = None
     last_playback_position = None
+    last_working_dir = None
     last_path = None
     last_duration = None
     last_file_start_timestamp = None
@@ -107,6 +114,7 @@ def on_disconnected():
 
 
 def issue_scrobble_commands(monitor):
+    monitor.send_get_property_command('working-directory')
     monitor.send_get_property_command('path')
     monitor.send_get_property_command('percent-pos')
     monitor.send_get_property_command('pause')
@@ -136,8 +144,12 @@ def is_finished(playback_position, duration, start_time):
     return False
 
 
-def sync_to_trakt(is_paused, playback_position, path, duration, start_time, mpv_closed):
+def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, start_time, mpv_closed):
     do_sync = False
+    # If mpv is not started via double click from a file manager, but rather from a terminal,
+    # changes are the path to the video file is relative and not absolute. For the monitored_directories thing
+    # to work, we need an absolute path. that's why we need the working dir
+    path = os.path.join(working_dir, path)
 
     for monitored_directory in config['monitored_directories']:
         if path.startswith(monitored_directory):
