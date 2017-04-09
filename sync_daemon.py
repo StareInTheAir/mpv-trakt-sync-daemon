@@ -187,7 +187,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
                 else:
-                    log.warning('trakt request failed or unknown show ' + guess)
+                    log.warning('trakt request failed or unknown show ' + str(guess))
             data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
                     'episode': {'season': guess['season'], 'number': guess['episode']}}
         elif guess['type'] == 'movie':
@@ -198,10 +198,10 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['movies'][guess['title'].lower()] = req.json()[0]['movie']['ids']['trakt']
                 else:
-                    log.warning('trakt request failed or unknown movie ' + guess)
+                    log.warning('trakt request failed or unknown movie ' + str(guess))
             data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
         else:
-            log.warning('Unknown guessit type ' + guess)
+            log.warning('Unknown guessit type ' + str(guess))
 
         # update cached ids file
         with open(TRAKT_ID_CACHE_JSON, mode='w') as file:

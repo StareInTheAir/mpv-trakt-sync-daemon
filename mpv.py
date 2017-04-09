@@ -71,7 +71,7 @@ class MpvMonitor:
             with self.lock:
                 request_id = mpv_json['request_id']
                 if request_id not in self.sent_commands:
-                    log.warning('got response for unsent command request ' + mpv_json)
+                    log.warning('got response for unsent command request ' + str(mpv_json))
                 else:
                     if self.on_command_response is not None:
                         self.on_command_response(self, self.sent_commands[request_id], mpv_json)
