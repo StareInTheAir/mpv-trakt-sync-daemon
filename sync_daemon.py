@@ -5,12 +5,12 @@ import sys
 import threading
 import time
 
-import client_key_holder
 import guessit
 import os
 import requests
 
 import mpv
+import trakt_key_holder
 import trakt_v2_oauth
 
 log = logging.getLogger('mpvTraktSync')
@@ -183,7 +183,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
             if guess['title'].lower() not in id_cache['shows']:
                 log.info('requesting trakt id for show ' + guess['title'])
                 req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
-                                   headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
+                                   headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
                 else:
@@ -194,7 +194,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
             if guess['title'].lower() not in id_cache['movies']:
                 log.info('requesting trakt id for movie ' + guess['title'])
                 req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
-                                   headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id()})
+                                   headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
                     id_cache['movies'][guess['title'].lower()] = req.json()[0]['movie']['ids']['trakt']
                 else:
@@ -245,7 +245,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
 
             req = requests.post(url,
                                 json=data,
-                                headers={'trakt-api-version': '2', 'trakt-api-key': client_key_holder.get_id(),
+                                headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id(),
                                          'Authorization': 'Bearer ' + trakt_v2_oauth.get_access_token()})
             log.info('%s %s %s', url, req.status_code, req.text)
             if 200 <= req.status_code < 300:

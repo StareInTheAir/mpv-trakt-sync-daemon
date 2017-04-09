@@ -6,5 +6,5 @@ __pycache__/
 
 trakt_token.json
 trakt_ids.json
-client_key_holder_s.py
+trakt_key_holder.py
 sync_daemon.log
