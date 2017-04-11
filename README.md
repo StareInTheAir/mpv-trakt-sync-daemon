@@ -12,7 +12,7 @@ Or on windows with:
     input-ipc-server=\\.\pipe\mpv
 
 ## Config parameters
-All adjustable options are exposed via the [config.json] file.
+All adjustable options are exposed via the [config.json](config.json) file.
 
 | Parameter                                           | Explanation  |
 | --------------------------------------------------- |--------------|
