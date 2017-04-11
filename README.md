@@ -108,3 +108,4 @@ TODO
 - https://mpv.io/manual/master/#protocol
 - https://mpv.io/manual/master/#list-of-input-commands
 - https://mpv.io/manual/master/#property-list
+- http://docs.trakt.apiary.io/#reference/scrobble
