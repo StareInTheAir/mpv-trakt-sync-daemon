@@ -11,16 +11,17 @@ import trakt_key_holder
 
 log = logging.getLogger('mpvTraktSync')
 
-local_storage_json_file = './trakt_token.json'
+LOCAL_STORAGE_JSON_FILE = './trakt_token.json'
 
 
 def get_access_token():
-    if not os.path.isfile(local_storage_json_file):
+    if not os.path.isfile(LOCAL_STORAGE_JSON_FILE):
         prompt_device_authentication()
 
-    tokens = json.load(open(local_storage_json_file))
+    tokens = json.load(open(LOCAL_STORAGE_JSON_FILE))
 
-    expire_date = datetime.datetime.utcfromtimestamp(tokens['created_at'] + tokens['expires_in'])
+    expire_date = datetime.datetime.utcfromtimestamp(
+        tokens['created_at'] + tokens['expires_in'])
     remaining_time = expire_date - datetime.datetime.utcnow()
 
     # make sure the token is at least valid for the next day
@@ -37,10 +38,11 @@ def get_access_token():
         if token_refresh_request.status_code == 200:
             log.info('Successfully refreshed token')
             # save response to local json file
-            json.dump(token_refresh_request.json(), open(local_storage_json_file, 'w'))
+            json.dump(token_refresh_request.json(),
+                      open(LOCAL_STORAGE_JSON_FILE, 'w'))
 
             # reload new token
-            tokens = json.load(open(local_storage_json_file))
+            tokens = json.load(open(LOCAL_STORAGE_JSON_FILE))
         else:
             sys.exit('Refreshing token failed with http code %d.\n%s' %
                      (token_refresh_request.status_code, token_refresh_request.text))
@@ -68,7 +70,7 @@ def prompt_device_authentication():
             })
             if token_request.status_code == 200:
                 token_json = token_request.json()
-                json.dump(token_json, open(local_storage_json_file, 'w'))
+                json.dump(token_json, open(LOCAL_STORAGE_JSON_FILE, 'w'))
                 log.info('\nSuccessfully established access to trakt account')
                 got_access_token = True
                 break
@@ -80,8 +82,8 @@ def prompt_device_authentication():
             sys.exit(5)
 
     else:
-        log.critical('POST request for generating device codes failed with HTTP code %d.\n%s' %
-                     (code_request.status_code, code_request.text))
+        log.critical('POST request for generating device codes failed with HTTP code %d.\n%s',
+                     code_request.status_code, code_request.text)
         sys.exit(6)
 
 

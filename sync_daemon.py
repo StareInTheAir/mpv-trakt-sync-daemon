@@ -34,8 +34,7 @@ next_regular_timer = None
 
 def on_command_response(monitor, command, response):
     global last_is_paused, last_playback_position, last_working_dir, last_path, last_duration, last_file_start_timestamp
-    global next_sync_timer, next_regular_timer
-    global is_local_state_dirty
+    global next_sync_timer
 
     last_command_elements = command['command']
     if last_command_elements[0] == 'get_property':
