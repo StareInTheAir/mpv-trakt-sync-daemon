@@ -175,7 +175,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
                 'shows': {}
             }
         # constructing data to be sent to trakt
-        # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it
+        # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it.
         # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
         data = None
         if guess['type'] == 'episode':
@@ -184,21 +184,23 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
                 req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                    id_cache['shows'][guess['title'].lower()] = req.json()[0]['show']['ids']['trakt']
+                    trakt_id = req.json()[0]['show']['ids']['trakt']
+                    id_cache['shows'][guess['title'].lower()] = trakt_id
+                    data = {'show': {'ids': {'trakt': trakt_id}},
+                            'episode': {'season': guess['season'], 'number': guess['episode']}}
                 else:
                     log.warning('trakt request failed or unknown show ' + str(guess))
-            data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
-                    'episode': {'season': guess['season'], 'number': guess['episode']}}
         elif guess['type'] == 'movie':
             if guess['title'].lower() not in id_cache['movies']:
                 log.info('requesting trakt id for movie ' + guess['title'])
                 req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
                                    headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
                 if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                    id_cache['movies'][guess['title'].lower()] = req.json()[0]['movie']['ids']['trakt']
+                    trakt_id = req.json()[0]['movie']['ids']['trakt']
+                    id_cache['movies'][guess['title'].lower()] = trakt_id
+                    data = {'movie': {'ids': {'trakt': trakt_id}}}
                 else:
                     log.warning('trakt request failed or unknown movie ' + str(guess))
-            data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
         else:
             log.warning('Unknown guessit type ' + str(guess))
 
