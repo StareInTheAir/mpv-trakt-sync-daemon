@@ -3,6 +3,8 @@ import logging
 import socket
 import sys
 import threading
+import queue
+import select
 from time import sleep
 
 import os
@@ -46,6 +48,8 @@ class MpvMonitor:
         self.lock = threading.Lock()
         self.command_counter = 1
         self.sent_commands = {}
+        self.write_queue = queue.Queue()
+
         self.on_connected = on_connected
         self.on_event = on_event
         self.on_command_response = on_command_response
@@ -55,7 +59,7 @@ class MpvMonitor:
         pass
 
     def write(self, data):
-        pass
+        self.write_queue.put(data)
 
     def on_line(self, line):
         try:
@@ -119,29 +123,34 @@ class PosixMpvMonitor(MpvMonitor):
 
         buffer = ''
         while True:
-            data = self.sock.recv(512)
-            if len(data) == 0:
-                break
-            buffer = buffer + data.decode('utf-8')
-            if buffer.find('\n') == -1:
-                log.warning('received partial line: ' + buffer)
-            while True:
-                line_end = buffer.find('\n')
-                if line_end == -1:
+            r, _, _ = select.select([self.sock], [], [], 1.0)
+            if r == [self.sock]:
+                # socket has data to read
+                data = self.sock.recv(512)
+                if len(data) == 0:
+                    # EOF reached
                     break
-                else:
-                    self.on_line(buffer[:line_end])  # doesn't include \n
-                    buffer = buffer[line_end + 1:]  # doesn't include \n
+                buffer = buffer + data.decode('utf-8')
+                while True:
+                    line_end = buffer.find('\n')
+                    if line_end == -1:
+                        # partial line received
+                        # wait for next recv() until calling self.on_line()
+                        break
+                    else:
+                        self.on_line(buffer[:line_end])  # doesn't include \n
+                        buffer = buffer[line_end + 1:]  # doesn't include \n
+
+            while not self.write_queue.empty():
+                select.select([], [self.sock], [])  # blocks until self.sock can be written to
+                self.sock.send(self.write_queue.get_nowait())
+
 
         log.info('POSIX socket closed')
         self.sock.close()
         self.sock = None
 
         self.fire_disconnected()
-
-    def write(self, data):
-        # no closed check is available, so just send it
-        self.sock.send(data)
 
 
 class WindowsMpvMonitor(MpvMonitor):
@@ -169,19 +178,21 @@ class WindowsMpvMonitor(MpvMonitor):
         self.fire_connected()
 
         while True:
-            line = self.pipe.readline()
-            if len(line) == 0:
-                break
-            self.on_line(line)
+            r, _, _ = select.select([self.pipe], [], [], 1.0)
+            if r == [self.pipe]:
+                # pipe has data to read
+                line = self.pipe.readline()
+                if len(line) == 0:
+                    # EOF reached
+                    break
+                self.on_line(line)
+
+            while not self.write_queue.empty():
+                select.select([], [self.pipe], [])  # blocks until self.pipe can be written to
+                self.pipe.write(self.write_queue.get_nowait())
 
         log.info('Windows named pipe closed')
         self.pipe.close()
         self.pipe = None
 
         self.fire_disconnected()
-
-    def write(self, data):
-        if self.pipe.closed:
-            log.warning('Windows named pipe was closed. Can\'t send data: ' + str(data))
-        else:
-            self.pipe.write(data)
