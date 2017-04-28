@@ -273,7 +273,7 @@ def main():
                 thread = threading.Thread(target=monitor.run, daemon=True)
                 thread.start()
                 thread.join()
-                # If run() returns, mpv was closed.
+                # If thread joins, mpv was closed.
                 log.info('mpv closed')
                 # If we try to instantly check for via can_open() and open it again, mpv crashes (at least on Windows).
                 # So we need to give mpv some time to close gracefully.
