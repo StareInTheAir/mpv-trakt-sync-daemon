@@ -182,22 +182,19 @@ class WindowsMpvMonitor(MpvMonitor):
             if win32file.GetFileAttributes(self.named_pipe_path) != win32file.FILE_ATTRIBUTE_NORMAL:
                 # pipe was closed
                 break
+
+            while not self.write_queue.empty():
+                win32file.WriteFile(self.file_handle, self.write_queue.get_nowait())
+
             size = win32file.GetFileSize(self.file_handle)
             if size > 0:
                 while size > 0:
                     # pipe has data to read
                     data = win32file.ReadFile(self.file_handle, 512)
-                    # if len(data) == 0:
-                    #     # EOF reached
-                    #     break
-                    print(data[0])
                     self.on_data(data[1])
                     size = win32file.GetFileSize(self.file_handle)
             else:
                 time.sleep(1)
-
-            while not self.write_queue.empty():
-                win32file.WriteFile(self.file_handle, self.write_queue.get_nowait())
 
         log.info('Windows named pipe closed')
         win32file.CloseHandle(self.file_handle)
