@@ -1,12 +1,9 @@
 import json
 import logging
-import socket
 import sys
 import threading
 import queue
-import select
-from time import sleep
-
+import time
 import os
 
 log = logging.getLogger('mpvTraktSync')
@@ -46,6 +43,7 @@ class MpvMonitor:
 
     def __init__(self, on_connected, on_event, on_command_response, on_disconnected):
         self.lock = threading.Lock()
+        self.buffer = ''
         self.command_counter = 1
         self.sent_commands = {}
         self.write_queue = queue.Queue()
@@ -60,6 +58,18 @@ class MpvMonitor:
 
     def write(self, data):
         self.write_queue.put(data)
+
+    def on_data(self, data):
+        self.buffer = self.buffer + data.decode('utf-8')
+        while True:
+            line_end = self.buffer.find('\n')
+            if line_end == -1:
+                # partial line received
+                # self.on_line() is called in next data batch
+                break
+            else:
+                self.on_line(self.buffer[:line_end])  # doesn't include \n
+                self.buffer = self.buffer[line_end + 1:]  # doesn't include \n
 
     def on_line(self, line):
         try:
@@ -109,19 +119,23 @@ class PosixMpvMonitor(MpvMonitor):
         self.sock = None
 
     def can_open(self):
+        import socket
+
         sock = socket.socket(socket.AF_UNIX)
         errno = sock.connect_ex(self.socket_path)
         sock.close()
         return errno == 0
 
     def run(self):
+        import select
+        import socket
+
         self.sock = socket.socket(socket.AF_UNIX)
         self.sock.connect(self.socket_path)
 
         log.info('POSIX socket connected')
         self.fire_connected()
 
-        buffer = ''
         while True:
             r, _, _ = select.select([self.sock], [], [], 1.0)
             if r == [self.sock]:
@@ -130,21 +144,11 @@ class PosixMpvMonitor(MpvMonitor):
                 if len(data) == 0:
                     # EOF reached
                     break
-                buffer = buffer + data.decode('utf-8')
-                while True:
-                    line_end = buffer.find('\n')
-                    if line_end == -1:
-                        # partial line received
-                        # wait for next recv() until calling self.on_line()
-                        break
-                    else:
-                        self.on_line(buffer[:line_end])  # doesn't include \n
-                        buffer = buffer[line_end + 1:]  # doesn't include \n
+                self.on_data(data)
 
             while not self.write_queue.empty():
                 select.select([], [self.sock], [])  # blocks until self.sock can be written to
                 self.sock.send(self.write_queue.get_nowait())
-
 
         log.info('POSIX socket closed')
         self.sock.close()
@@ -157,42 +161,46 @@ class WindowsMpvMonitor(MpvMonitor):
     def __init__(self, named_pipe_path, on_connected, on_event, on_command_response, on_disconnected):
         super().__init__(on_connected, on_event, on_command_response, on_disconnected)
         self.named_pipe_path = named_pipe_path
-        self.pipe = None
+        self.file_handle = None
 
     def can_open(self):
-        return os.path.isfile(self.named_pipe_path)
+        import win32file
+        return win32file.GetFileAttributes((self.named_pipe_path)) == win32file.FILE_ATTRIBUTE_NORMAL
 
     def run(self):
-        while self.pipe is None:
-            try:
-                self.pipe = open(self.named_pipe_path, 'r+b')
-                # Why r+b? We want rw access, no truncate and start from beginning of file.
-                # (see http://stackoverflow.com/a/30566011/2634932)
-            except OSError:
-                # Sometimes Windows can't open the named pipe directly. I suspect a interaction between os.path.isfile()
-                # and directly following open(). Sleeping for a short time and trying again seems to help.
-                log.warning('OSError. Trying again')
-                sleep(0.01)
+        import win32file
+        self.file_handle = win32file.CreateFile(self.named_pipe_path,
+                                                win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+                                                0, None,
+                                                win32file.OPEN_EXISTING,
+                                                0, None)
 
         log.info('Windows named pipe connected')
         self.fire_connected()
 
         while True:
-            r, _, _ = select.select([self.pipe], [], [], 1.0)
-            if r == [self.pipe]:
-                # pipe has data to read
-                line = self.pipe.readline()
-                if len(line) == 0:
-                    # EOF reached
-                    break
-                self.on_line(line)
+            if win32file.GetFileAttributes(self.named_pipe_path) != win32file.FILE_ATTRIBUTE_NORMAL:
+                # pipe was closed
+                break
+            size = win32file.GetFileSize(self.file_handle)
+            if size > 0:
+                while size > 0:
+                    # pipe has data to read
+                    data = win32file.ReadFile(self.file_handle, 512)
+                    # if len(data) == 0:
+                    #     # EOF reached
+                    #     break
+                    print(data[0])
+                    self.on_data(data[1])
+                    size = win32file.GetFileSize(self.file_handle)
+            else:
+                time.sleep(1)
 
             while not self.write_queue.empty():
-                select.select([], [self.pipe], [])  # blocks until self.pipe can be written to
-                self.pipe.write(self.write_queue.get_nowait())
+                win32file.WriteFile(self.file_handle, self.write_queue.get_nowait())
 
         log.info('Windows named pipe closed')
-        self.pipe.close()
-        self.pipe = None
+        win32file.CloseHandle(self.file_handle)
+        self.file_handle = None
 
         self.fire_disconnected()
