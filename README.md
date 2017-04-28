@@ -37,7 +37,7 @@ I recommend to setup a Python virtual environment instead of installing the depe
 1. `cd %APPDATA%\mpv-trakt-sync-daemon` (Changes directory to your install location)
 1. `virtualenv venv` (Virtual environment created in `venv` folder)
 1. `venv\Scripts\activate.bat` (Virtual environment activated)
-1. `pip install -r requirements.txt` (Dependencies installed in virtualenv)
+1. `pip install -r requirements-win.txt` (Dependencies installed in virtualenv)
 1. `python sync_daemon.py` (Start daemon manually)
 1. Follow the printed instructions to grant this daemon permission to your trakt account.
 1. Start watching files in mpv and monitor correct operation (Output is also written to `sync_daemon.log`)
