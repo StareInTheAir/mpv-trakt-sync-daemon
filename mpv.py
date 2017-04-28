@@ -102,8 +102,8 @@ class MpvMonitor:
             self.on_disconnected()
 
     def send_command(self, elements):
-        command = {'command': elements, 'request_id': self.command_counter}
         with self.lock:
+            command = {'command': elements, 'request_id': self.command_counter}
             self.sent_commands[self.command_counter] = command
             self.command_counter += 1
             self.write(str.encode(json.dumps(command) + '\n'))
