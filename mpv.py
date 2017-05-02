@@ -38,7 +38,7 @@ class MpvMonitor:
         elif os.name == 'nt':
             return WindowsMpvMonitor(mpv_ipc_path, on_connected, on_event, on_command_response, on_disconnected)
         else:
-            log.critical('Unknown operating system: ' + os.name, file=sys.stderr)
+            log.critical('Unknown operating system: ' + os.name)
             sys.exit(11)
 
     def __init__(self, on_connected, on_event, on_command_response, on_disconnected):
@@ -57,6 +57,7 @@ class MpvMonitor:
         pass
 
     def write(self, data):
+        log.debug(data)
         self.write_queue.put(data)
 
     def on_data(self, data):
