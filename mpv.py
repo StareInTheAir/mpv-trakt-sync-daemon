@@ -180,12 +180,19 @@ class WindowsMpvMonitor(MpvMonitor):
         self.fire_connected()
 
         while True:
-            if win32file.GetFileAttributes(self.named_pipe_path) != win32file.FILE_ATTRIBUTE_NORMAL:
-                # pipe was closed
-                break
+            # The following code is cleaner, than waiting for an exception while writing to detect pipe closing,
+            # but causes mpv to hang and crash while closing when closed at the wrong time.
 
-            while not self.write_queue.empty():
-                win32file.WriteFile(self.file_handle, self.write_queue.get_nowait())
+            # if win32file.GetFileAttributes(self.named_pipe_path) != win32file.FILE_ATTRIBUTE_NORMAL:
+            #     # pipe was closed
+            #     break
+
+            try:
+                while not self.write_queue.empty():
+                    win32file.WriteFile(self.file_handle, self.write_queue.get_nowait())
+            except win32file.error:
+                log.warning('Exception while writing to Windows named pipe. Assuming pipe closed.')
+                break
 
             size = win32file.GetFileSize(self.file_handle)
             if size > 0:
