@@ -1,6 +1,8 @@
 {
   "monitored_directories": [
   ],
+  "excluded_directories": [
+  ],
   "seconds_between_mpv_running_checks": 30.0,
   "seconds_between_mpv_event_and_trakt_sync": 10.0,
   "seconds_between_regular_get_property_commands": 30.0,

@@ -161,6 +161,11 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
     if len(config['monitored_directories']) == 0:
         do_sync = True
 
+    for excluded_directory in config['excluded_directories']:
+        if path.startswith(excluded_directory):
+            do_sync = False
+            break
+
     if do_sync:
         guess = guessit.guessit(path)
         log.debug(guess)
