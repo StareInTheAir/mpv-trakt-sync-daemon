@@ -165,50 +165,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
         guess = guessit.guessit(path)
         log.debug(guess)
 
-        # load cached ids
-        if os.path.isfile(TRAKT_ID_CACHE_JSON):
-            with open(TRAKT_ID_CACHE_JSON) as file:
-                id_cache = json.load(file)
-        else:
-            id_cache = {
-                'movies': {},
-                'shows': {}
-            }
-        # constructing data to be sent to trakt
-        # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it.
-        # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
-        data = None
-        if guess['type'] == 'episode':
-            if guess['title'].lower() not in id_cache['shows']:
-                log.info('requesting trakt id for show ' + guess['title'])
-                req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
-                                   headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
-                if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                    trakt_id = req.json()[0]['show']['ids']['trakt']
-                    id_cache['shows'][guess['title'].lower()] = trakt_id
-                else:
-                    log.warning('trakt request failed or unknown show ' + str(guess))
-            if guess['title'].lower() in id_cache['shows']:
-                data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
-                        'episode': {'season': guess['season'], 'number': guess['episode']}}
-        elif guess['type'] == 'movie':
-            if guess['title'].lower() not in id_cache['movies']:
-                log.info('requesting trakt id for movie ' + guess['title'])
-                req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
-                                   headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
-                if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                    trakt_id = req.json()[0]['movie']['ids']['trakt']
-                    id_cache['movies'][guess['title'].lower()] = trakt_id
-                else:
-                    log.warning('trakt request failed or unknown movie ' + str(guess))
-            if guess['title'].lower() in id_cache['movies']:
-                data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
-        else:
-            log.warning('Unknown guessit type ' + str(guess))
-
-        # update cached ids file
-        with open(TRAKT_ID_CACHE_JSON, mode='w') as file:
-            json.dump(id_cache, file)
+        data = get_cached_trakt_data(guess)
 
         if data is not None:
             data['progress'] = playback_position
@@ -254,6 +211,63 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
             if 200 <= req.status_code < 300:
                 global is_local_state_dirty
                 is_local_state_dirty = False
+
+
+def get_cached_trakt_data(guess):
+    # load cached ids
+    if os.path.isfile(TRAKT_ID_CACHE_JSON):
+        with open(TRAKT_ID_CACHE_JSON) as file:
+            id_cache = json.load(file)
+    else:
+        id_cache = {
+            'movies': {},
+            'shows': {}
+        }
+    # constructing data to be sent to trakt
+    # if show or movie name is not found in id_cache, request trakt id from trakt API and cache it.
+    # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
+    data = None
+    if guess['type'] == 'episode':
+        if guess['title'].lower() not in id_cache['shows']:
+            log.info('requesting trakt id for show ' + guess['title'])
+            req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
+                               headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
+            if 200 <= req.status_code < 300 and len(req.json()) > 0:
+                trakt_id = req.json()[0]['show']['ids']['trakt']
+            else:
+                # write n/a into cache, so that unknown shows are only requested once.
+                # without n/a unknown shows would be requested each time get_cached_trakt_data_from_guess() is called
+                trakt_id = 'n/a'
+                log.warning('trakt request failed or unknown show ' + str(guess))
+            id_cache['shows'][guess['title'].lower()] = trakt_id
+        trakt_id = id_cache['shows'][guess['title'].lower()]
+        if trakt_id != 'n/a':
+            data = {'show': {'ids': {'trakt': id_cache['shows'][guess['title'].lower()]}},
+                    'episode': {'season': guess['season'], 'number': guess['episode']}}
+    elif guess['type'] == 'movie':
+        if guess['title'].lower() not in id_cache['movies']:
+            log.info('requesting trakt id for movie ' + guess['title'])
+            req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
+                               headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
+            if 200 <= req.status_code < 300 and len(req.json()) > 0:
+                trakt_id = req.json()[0]['movie']['ids']['trakt']
+            else:
+                # write n/a into cache, so that unknown movies are only requested once.
+                # without n/a unknown movies would be requested each time get_cached_trakt_data_from_guess() is called
+                trakt_id = 'n/a'
+                log.warning('trakt request failed or unknown movie ' + str(guess))
+            id_cache['movies'][guess['title'].lower()] = trakt_id
+        trakt_id = id_cache['movies'][guess['title'].lower()]
+        if trakt_id != 'n/a':
+            data = {'movie': {'ids': {'trakt': id_cache['movies'][guess['title'].lower()]}}}
+    else:
+        log.warning('Unknown guessit type ' + str(guess))
+
+    # update cached ids file
+    with open(TRAKT_ID_CACHE_JSON, mode='w') as file:
+        json.dump(id_cache, file)
+
+    return data
 
 
 def main():
