@@ -7,9 +7,11 @@ You need to set the `--input-ipc-server` (see [docs](https://mpv.io/manual/maste
 
     input-ipc-server=/tmp/mpv-socket
 
-Or on windows with:
+Or on Windows with:
 
     input-ipc-server=\\.\pipe\mpv
+
+The daemon will look for the `input-ipc-server` option in the config file.
 
 ## Config parameters
 All adjustable options are exposed via the [config.json](config.json) file.
@@ -98,7 +100,7 @@ TODO
 - Only one mpv instance can be tracked (because only one mpv process can write to the socket / named pipe)
 - Once mpv is closing, requests can no longer be sent to it. To keep track of your playback position requests need to be sent in regular intervals, so that when mpv quits the last known state can be used for determining your playback state.
 
-## Why not as as a mpv Lua script?
+## Why not as as a mpv Lua plugin?
 
 - When mpv quits, I imagine, sending out a blocking http request to the trakt API isn't the best. When you want mpv to quit, it should quit instantly. A separate daemon is better suited to accomplish this task.
 - [guessit](https://github.com/guessit-io/guessit) is really good at parsing release names and it's also written in Python
