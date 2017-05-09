@@ -51,18 +51,18 @@ def on_command_response(monitor, command, response):
         elif last_command_elements[1] == 'duration':
             last_duration = response['data']
 
-            if is_local_state_dirty \
-                    and last_is_paused is not None \
-                    and last_playback_position is not None \
-                    and last_working_dir is not None \
-                    and last_path is not None \
-                    and last_duration is not None:
-                if next_sync_timer is not None:
-                    next_sync_timer.cancel()
-                next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
-                                                  (last_is_paused, last_playback_position, last_working_dir, last_path,
-                                                   last_duration, last_file_start_timestamp, False))
-                next_sync_timer.start()
+        if is_local_state_dirty \
+                and last_is_paused is not None \
+                and last_playback_position is not None \
+                and last_working_dir is not None \
+                and last_path is not None \
+                and last_duration is not None:
+            if next_sync_timer is not None:
+                next_sync_timer.cancel()
+            next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
+                                              (last_is_paused, last_playback_position, last_working_dir, last_path,
+                                               last_duration, last_file_start_timestamp, False))
+            next_sync_timer.start()
 
 
 def on_event(monitor, event):
