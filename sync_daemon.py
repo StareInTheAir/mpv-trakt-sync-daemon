@@ -38,31 +38,36 @@ def on_command_response(monitor, command, response):
 
     last_command_elements = command['command']
     if last_command_elements[0] == 'get_property':
-        if last_command_elements[1] == 'pause':
-            last_is_paused = response['data']
-            if not last_is_paused and last_file_start_timestamp is None:
-                last_file_start_timestamp = time.time()
-        elif last_command_elements[1] == 'percent-pos':
-            last_playback_position = response['data']
-        elif last_command_elements[1] == 'working-directory':
-            last_working_dir = response['data']
-        elif last_command_elements[1] == 'path':
-            last_path = response['data']
-        elif last_command_elements[1] == 'duration':
-            last_duration = response['data']
+        if response['error'] != 'success':
+            log.warning('Command %s failed: %s', command, response)
+        else:
+            if last_command_elements[1] == 'pause':
+                last_is_paused = response['data']
+                if not last_is_paused and last_file_start_timestamp is None:
+                    last_file_start_timestamp = time.time()
+            elif last_command_elements[1] == 'percent-pos':
+                last_playback_position = response['data']
+            elif last_command_elements[1] == 'working-directory':
+                last_working_dir = response['data']
+            elif last_command_elements[1] == 'path':
+                last_path = response['data']
+            elif last_command_elements[1] == 'duration':
+                last_duration = response['data']
 
-        if is_local_state_dirty \
-                and last_is_paused is not None \
-                and last_playback_position is not None \
-                and last_working_dir is not None \
-                and last_path is not None \
-                and last_duration is not None:
-            if next_sync_timer is not None:
-                next_sync_timer.cancel()
-            next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
-                                              (last_is_paused, last_playback_position, last_working_dir, last_path,
-                                               last_duration, last_file_start_timestamp, False))
-            next_sync_timer.start()
+            # log.debug('lasts:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s', is_local_state_dirty, last_is_paused,
+            #           last_playback_position, last_working_dir, last_path, last_duration)
+            if is_local_state_dirty \
+                    and last_is_paused is not None \
+                    and last_playback_position is not None \
+                    and last_working_dir is not None \
+                    and last_path is not None \
+                    and last_duration is not None:
+                if next_sync_timer is not None:
+                    next_sync_timer.cancel()
+                next_sync_timer = threading.Timer(config['seconds_between_mpv_event_and_trakt_sync'], sync_to_trakt,
+                                                  (last_is_paused, last_playback_position, last_working_dir, last_path,
+                                                   last_duration, last_file_start_timestamp, False))
+                next_sync_timer.start()
 
 
 def on_event(monitor, event):
