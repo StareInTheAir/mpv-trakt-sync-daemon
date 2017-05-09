@@ -4,6 +4,7 @@ import logging
 import sys
 import threading
 import time
+import urllib.parse
 
 import guessit
 import os
@@ -150,12 +151,21 @@ def is_finished(playback_position, duration, start_time):
     return False
 
 
+def is_url(url):
+    try:
+        return urllib.parse.urlparse(url).scheme != ''
+    except SyntaxError:
+        return False
+
+
 def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, start_time, mpv_closed):
     do_sync = False
-    # If mpv is not started via double click from a file manager, but rather from a terminal,
-    # changes are the path to the video file is relative and not absolute. For the monitored_directories thing
-    # to work, we need an absolute path. that's why we need the working dir
-    path = os.path.join(working_dir, path)
+    print('url: %s abs: %s' % (is_url(path), os.path.isabs(path)))
+    if not is_url(path) and not os.path.isabs(path):
+        # If mpv is not started via double click from a file manager, but rather from a terminal,
+        # the path to the video file is relative and not absolute. For the monitored_directories thing
+        # to work, we need an absolute path. that's why we need the working dir
+        path = os.path.join(working_dir, path)
 
     for monitored_directory in config['monitored_directories']:
         if path.startswith(monitored_directory):
