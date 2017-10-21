@@ -189,7 +189,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
 
         if data is not None:
             data['progress'] = playback_position
-            data['app_version'] = '1.0.1'
+            data['app_version'] = '1.0.2'
 
             finished = is_finished(playback_position, duration, start_time)
 
