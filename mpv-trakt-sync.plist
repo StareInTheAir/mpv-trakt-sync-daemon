@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.github.stareintheair.mpv-trakt-sync-daemon</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>**/Path/To/**mpv-trakt-sync-daemon/venv/bin/python3</string>
+        <string>sync_daemon.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>**/Path/To/**mpv-trakt-sync-daemon</string>
+    <key>RunAtLoad</key>
+    <true />
+    <key>LaunchOnlyOnce</key>
+    <true />
+    <key>KeepAlive</key>
+    <true />
+</dict>
+</plist>

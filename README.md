@@ -72,7 +72,7 @@ I recommend using [win-launch.bat](win-launch.bat) over [win-hidden-launch.vbs](
 #### Install as an autostart background service
 If your OS has `systemd`:
 
-1. Put the correct path to the cloned repository in `mpv-trakt-sync@.service`
+1. Put the correct path to the cloned repository into `mpv-trakt-sync@.service`
 1. `sudo cp mpv-trakt-sync@.service /etc/systemd/system/`
 1. `sudo systemctl daemon-reload`
 1. `sudo systemctl enable mpv-trakt-sync@$USER`
@@ -93,7 +93,12 @@ If your OS has `systemd`:
 1. `./sync_daemon.py`
 
 #### Install as an autostart background service
-TODO
+Contributed by [Sameer Jain](https://github.com/SJ50). Thank you.
+
+1. Put the correct path to the cloned repository into `mpv-trakt-sync.plist`
+1. `cp mpv-trakt-sync.plist ~/Library/LaunchAgents/`
+1. `launchctl load ~/Library/LaunchAgents/mpv-trakt-sync.plist`
+1. `launchctl list | grep com.github.stareintheair.mpv-trakt-sync-daemon` (shows output if mpv-trakt-sync-daemon is running)
 
 ## Limitations
 
@@ -112,3 +117,4 @@ TODO
 - https://mpv.io/manual/master/#list-of-input-commands
 - https://mpv.io/manual/master/#property-list
 - http://docs.trakt.apiary.io/#reference/scrobble
+- http://www.launchd.info/
