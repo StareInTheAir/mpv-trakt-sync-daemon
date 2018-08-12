@@ -34,6 +34,7 @@ next_regular_timer = None
 
 
 def on_command_response(monitor, command, response):
+    log.debug('on_command_response(%s, %s)' % (command, response))
     global last_is_paused, last_playback_position, last_working_dir, last_path, last_duration, last_file_start_timestamp
     global next_sync_timer
 
@@ -55,8 +56,8 @@ def on_command_response(monitor, command, response):
             elif last_command_elements[1] == 'duration':
                 last_duration = response['data']
 
-            # log.debug('lasts:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s', is_local_state_dirty, last_is_paused,
-            #           last_playback_position, last_working_dir, last_path, last_duration)
+            log.debug('is_local_state_dirty: %s\nlast_is_paused: %s\nlast_playback_position: %s\nlast_working_dir: %s\nlast_path: %s\nlast_duration: %s',
+                      is_local_state_dirty, last_is_paused, last_playback_position, last_working_dir, last_path, last_duration)
             if is_local_state_dirty \
                     and last_is_paused is not None \
                     and last_playback_position is not None \
@@ -72,9 +73,10 @@ def on_command_response(monitor, command, response):
 
 
 def on_event(monitor, event):
+    log.debug('on_event(%s)' % (event))
     event_name = event['event']
 
-    # when a new file starts, acts as a new mpv instance got connected
+    # when a new file starts, act as if a new mpv instance got connected
     if event_name == 'start-file':
         on_disconnected()
         on_connected(monitor)
@@ -86,12 +88,14 @@ def on_event(monitor, event):
 
 
 def on_connected(monitor):
+    log.debug('on_connected()')
     global is_local_state_dirty
     is_local_state_dirty = True
     issue_scrobble_commands(monitor)
 
 
 def on_disconnected():
+    log.debug('on_disconnected()')
     global last_is_paused, last_playback_position, last_working_dir, last_path, last_duration, last_file_start_timestamp
     global next_sync_timer, next_regular_timer
     global is_local_state_dirty
@@ -159,8 +163,8 @@ def is_url(url):
 
 
 def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, start_time, mpv_closed):
+    log.debug('sync_to_trakt(%s, %d, %s, %s, %d, %d, %s)' % (is_paused, playback_position, working_dir, path, duration, start_time, mpv_closed))
     do_sync = False
-    print('url: %s abs: %s' % (is_url(path), os.path.isabs(path)))
     if not is_url(path) and not os.path.isabs(path):
         # If mpv is not started via double click from a file manager, but rather from a terminal,
         # the path to the video file is relative and not absolute. For the monitored_directories thing
@@ -181,6 +185,7 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
             do_sync = False
             break
 
+    log.debug('do_sync = %s' % (do_sync))
     if do_sync:
         guess = guessit.guessit(path)
         log.debug(guess)
