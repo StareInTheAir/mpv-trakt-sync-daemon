@@ -33,7 +33,7 @@ I recommend to setup a Python virtual environment instead of installing the depe
 ### Windows
 
 #### First-time use
-1. Download and install Python 3.6.x from their [website](https://www.python.org/downloads/). Make sure to check the 'Add to PATH' option in the install wizard.
+1. Download and install Python 3.7.x from their [website](https://www.python.org/downloads/). Make sure to check the 'Add to PATH' option in the install wizard.
 1. [Download this repository as a zip](../../archive/master.zip) and extract it to a static install location (maybe `%APPDATA%\mpv-trakt-sync-daemon`?)
 1. Open command prompt (Win+R > cmd > Enter)
 1. `pip install virtualenv` (virtualenv is installed globally)
