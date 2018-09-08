@@ -1,0 +1,12 @@
+[Unit]
+Description=mpv trakt sync daemon
+After=network.target
+
+[Service]
+ExecStart=%h/mpv-trakt-sync-daemon/venv/bin/python3 sync_daemon.py
+WorkingDirectory=%h/mpv-trakt-sync-daemon
+Restart=always
+KillSignal=SIGINT
+
+[Install]
+WantedBy=default.target
