@@ -2,6 +2,7 @@
   "monitored_directories": [
   ],
   "excluded_directories": [
+    "https://www.youtube.com/"
   ],
   "seconds_between_mpv_running_checks": 30.0,
   "seconds_between_mpv_event_and_trakt_sync": 10.0,
