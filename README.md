@@ -72,10 +72,11 @@ I recommend using [win-launch.bat](win-launch.bat) over [win-hidden-launch.vbs](
 #### Install as an autostart background service
 If your OS has `systemd`:
 
-1. Put the correct path to the cloned repository into `mpv-trakt-sync@.service`
-1. `sudo cp mpv-trakt-sync@.service /etc/systemd/system/`
-1. `sudo systemctl daemon-reload`
-1. `sudo systemctl enable mpv-trakt-sync@$USER`
+1. Put the correct path to the cloned repository into `mpv-trakt-sync.service`
+1. `cp mpv-trakt-sync.service ~/.config/systemd/user/`
+1. `systemctl --user daemon-reload`
+1. `systemctl --user enable mpv-trakt-sync`
+1. `systemctl --user start mpv-trakt-sync`
 1. `systemd` will now launch the daemon on boot
 
 ### macOS
