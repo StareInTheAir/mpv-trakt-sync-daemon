@@ -243,7 +243,7 @@ def choose_trakt_id(data, guess):
     else:
         kind = 'movie'
     ## the first ordered show that matches the year is the most likely true match
-    if guess['year']:
+    if 'year' in guess:
         for item in data:
             if item['type'] == kind:
                 if item[kind]['year'] == guess['year']:
