@@ -266,6 +266,9 @@ def get_cached_trakt_data(guess):
     # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
     data = None
     if guess['type'] == 'episode':
+        print(guess)
+        if 'episode' not in guess and 'episode_title' in guess:
+            guess['episode'] = guess['episode_title']
         if guess['title'].lower() not in id_cache['shows']:
             log.info('requesting trakt id for show ' + guess['title'])
             req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
