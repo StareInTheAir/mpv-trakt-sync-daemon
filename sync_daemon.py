@@ -237,6 +237,19 @@ def sync_to_trakt(is_paused, playback_position, working_dir, path, duration, sta
                 global is_local_state_dirty
                 is_local_state_dirty = False
 
+def choose_trakt_id(data, guess):
+    if guess['type'] == 'episode':
+        kind = 'show'
+    else:
+        kind = 'movie'
+    ## the first ordered show that matches the year is the most likely true match
+    if 'year' in guess:
+        for item in data:
+            if item['type'] == kind:
+                if item[kind]['year'] == guess['year']:
+                    return item[kind]['ids']['trakt']
+    else:
+        return data[0][kind]['ids']['trakt']
 
 def get_cached_trakt_data(guess):
     # load cached ids
@@ -253,12 +266,15 @@ def get_cached_trakt_data(guess):
     # then assign dict to data, which has the structure of the json trakt expects for a scrobble call
     data = None
     if guess['type'] == 'episode':
+        print(guess)
+        if 'episode' not in guess and 'episode_title' in guess:
+            guess['episode'] = guess['episode_title']
         if guess['title'].lower() not in id_cache['shows']:
             log.info('requesting trakt id for show ' + guess['title'])
             req = requests.get('https://api.trakt.tv/search/show?field=title&query=' + guess['title'],
                                headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
             if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                trakt_id = req.json()[0]['show']['ids']['trakt']
+                trakt_id = choose_trakt_id(req.json(), guess)
             else:
                 # write n/a into cache, so that unknown shows are only requested once.
                 # without n/a unknown shows would be requested each time get_cached_trakt_data_from_guess() is called
@@ -275,7 +291,7 @@ def get_cached_trakt_data(guess):
             req = requests.get('https://api.trakt.tv/search/movie?field=title&query=' + guess['title'],
                                headers={'trakt-api-version': '2', 'trakt-api-key': trakt_key_holder.get_id()})
             if 200 <= req.status_code < 300 and len(req.json()) > 0:
-                trakt_id = req.json()[0]['movie']['ids']['trakt']
+                trakt_id = choose_trakt_id(req.json(), guess)
             else:
                 # write n/a into cache, so that unknown movies are only requested once.
                 # without n/a unknown movies would be requested each time get_cached_trakt_data_from_guess() is called
